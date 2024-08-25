@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>サイトマップ可視化くん（β版）</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="lib/tweakpane.min.js"></script>
+  <script src="lib/d3.v5.min.js"></script>
+</head>
+
+<body>
+  <h1>サイトマップ可視化くん（β版）</h1>
+  <div id="explain">
+    <p>
+      以下のようなURL一覧のCSVファイルをアップロードしてください。※https://www を忘れないように！<br>
+      https://www.smbc.co.jp/aboutus/adgallery/,<br>
+      https://www.smbc.co.jp/aboutus/profile/koukoku/,<br>
+      https://www.smbc.co.jp/aboutus/sponsorship/,<br>
+      https://www.smbc.co.jp/aboutus/sustainability/,<br>
+      https://www.smbc.co.jp/aboutus/sustainability/employee/diversity/,<br>
+      https://www.smbc.co.jp/backnumber.html,<br>
+      https://www.smbc.co.jp/customer/,<br>
+      https://www.smbc.co.jp/cx/,<br>
+      https://www.smbc.co.jp/dx/<br>
+    </p>
+  </div>
+
+  <!-- CSVファイルをアップロードするためのファイル選択フィールド -->
+  <input type="file" id="csvFile" accept=".csv" />
+  <!-- CSVデータを表示するためのテキストエリア -->
+  <textarea id="csvData" rows="10" cols="50" readonly></textarea>
+
+  <script
+    src="lib/papaparse.min.js"
+    integrity="sha512-dfX5uYVXzyU8+KHqj8bjo7UkOdg18PaOtpa48djpNbZHwExddghZ+ZmzWT06R5v6NSk3ZUfsH6FNEDepLx9hPQ=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  ></script>
+
+  <script src="_chart.js"></script>
+</body>
+
+</html>
