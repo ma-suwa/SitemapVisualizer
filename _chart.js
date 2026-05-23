@@ -262,14 +262,14 @@ const PARAMS = {
 
 const pane = new Tweakpane.Pane();
 
-const fCommon = pane.addFolder({ title: '基本設定' });
+const fCommon = pane.addFolder({ title: '基本設定', expanded: false });
 fCommon.addInput(PARAMS, 'Depth', { step: 1, min: 0, max: 15, label: '表示する階層の深さ' });
 fCommon.addInput(PARAMS, 'Compact', { label: 'コンパクト表示（文字＋線のみ）' });
 
 const fA = pane.addFolder({ title: 'コンパクト表示の設定', expanded: false });
 fA.addInput(PARAMS, 'Height', { step: 0.5, min: 5, max: 50, label: '行の間隔' });
 
-const fBC = pane.addFolder({ title: 'ボックス表示の設定', expanded: true });
+const fBC = pane.addFolder({ title: 'ボックス表示の設定', expanded: false });
 fBC.addInput(PARAMS, 'BoxWidth', { step: 1, min: 60, max: 240, label: 'ボックスの幅' });
 fBC.addInput(PARAMS, 'BoxHeight', { step: 1, min: 20, max: 80, label: 'ボックスの高さ' });
 fBC.addInput(PARAMS, 'HSpacing', { step: 1, min: 0, max: 100, label: 'ボックス間の余白' });
