@@ -266,8 +266,6 @@ const fCommon = pane.addFolder({ title: '基本設定', expanded: false });
 fCommon.addInput(PARAMS, 'Depth', { step: 1, min: 0, max: 15, label: '表示する階層の深さ' });
 fCommon.addInput(PARAMS, 'Compact', { label: 'コンパクト表示（文字＋線のみ）' });
 
-const fA = pane.addFolder({ title: 'コンパクト表示の設定', expanded: false });
-fA.addInput(PARAMS, 'Height', { step: 0.5, min: 5, max: 50, label: '行の間隔' });
 
 const fBC = pane.addFolder({ title: 'ボックス表示の設定', expanded: false });
 fBC.addInput(PARAMS, 'BoxWidth', { step: 1, min: 60, max: 240, label: 'ボックスの幅' });
@@ -448,8 +446,7 @@ function drawPatternA(data) {
       .attr('dy', '0.31em')
       .attr('x', d => (d.children || d._children) ? -6 : 6)
       .attr('text-anchor', d => (d.children || d._children) ? 'end' : 'start')
-      .text(d => d.data.label || d.data.name)
-      .attr('stroke', 'white').attr('stroke-width', 3).attr('paint-order', 'stroke');
+      .text(d => d.data.label || d.data.name);
 
     const upd = enter.merge(node);
     upd.transition().duration(200).attr('transform', d => `translate(${d.y},${d.x})`);
