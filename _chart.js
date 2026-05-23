@@ -206,11 +206,11 @@ function hslToHex(h, s, l) {
 function generatePalette(baseHex) {
   const [h, s, basL] = hexToHsl(baseHex);
   return Array.from({ length: 8 }, (_, i) => {
-    const l = Math.min(93, Math.max(12, basL + 28 - i * 9));
-    const lStroke = Math.min(93, Math.max(12, l - 8));
-    const fill = hslToHex(h, s, l);
+    const l      = Math.min(95, Math.max(10, basL + 35 - i * 11));
+    const lStroke = Math.min(93, Math.max(10, l - 12));
+    const fill   = hslToHex(h, s, l);
     const stroke = hslToHex(h, Math.max(s - 10, 0), lStroke);
-    const text = l < 55 ? '#FFFFFF' : hslToHex(h, Math.min(s, 80), Math.max(12, basL - 38));
+    const text   = l >= 52 ? '#111111' : '#FFFFFF';
     return { fill, text, stroke };
   });
 }
