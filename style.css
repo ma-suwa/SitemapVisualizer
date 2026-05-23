@@ -79,14 +79,13 @@ input[type="file"] {
   flex-direction: column;
   align-items: center;
   padding: 8px 22px 6px;
-  border: 2px solid var(--keycolor);
-
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
   background: transparent;
-  color: var(--keydark);
+  color: #000;
   font-size: 14px;
-  font-weight: bold;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   line-height: 1.2;
 }
 
@@ -95,9 +94,9 @@ input[type="file"] {
 }
 
 .tab-btn.active {
-  background: var(--keycolor);
+  background: #000;
   color: #fff;
-  border-color: var(--keycolor);
+  border-color: #000;
 }
 
 /* ── SVG container ── */

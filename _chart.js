@@ -130,7 +130,7 @@ function csvToJson(rows) {
       if (!rootOrigin) {
         rootOrigin = parsed.origin;
         root.name = parsed.hostname;
-        root.url  = rootOrigin + '/';
+        root.url = rootOrigin + '/';
       }
       const parts = parsed.pathname.split('/').filter(Boolean);
       let cur = root;
@@ -206,51 +206,51 @@ function hslToHex(h, s, l) {
 function generatePalette(baseHex) {
   const [h, s, basL] = hexToHsl(baseHex);
   return Array.from({ length: 8 }, (_, i) => {
-    const l      = Math.min(93, Math.max(12, basL + 28 - i * 9));
+    const l = Math.min(93, Math.max(12, basL + 28 - i * 9));
     const lStroke = Math.min(93, Math.max(12, l - 8));
-    const fill   = hslToHex(h, s, l);
+    const fill = hslToHex(h, s, l);
     const stroke = hslToHex(h, Math.max(s - 10, 0), lStroke);
-    const text   = l < 55 ? '#FFFFFF' : hslToHex(h, Math.min(s, 80), Math.max(12, basL - 38));
+    const text = l < 55 ? '#FFFFFF' : hslToHex(h, Math.min(s, 80), Math.max(12, basL - 38));
     return { fill, text, stroke };
   });
 }
 
-let DEPTH_PALETTE = generatePalette('#888888');
+let DEPTH_PALETTE = generatePalette('#E53935');
 const nodeColor = depth => DEPTH_PALETTE[Math.min(depth, DEPTH_PALETTE.length - 1)];
 
 // ============================================================
 // Tweakpane
 // ============================================================
 const PARAMS = {
-  Depth:     4,
-  Height:    10,
-  BoxWidth:  120,
+  Depth: 4,
+  Height: 10,
+  BoxWidth: 120,
   BoxHeight: 36,
-  HSpacing:  8,
-  VSpacing:  8,
+  HSpacing: 8,
+  VSpacing: 8,
   Separation: 1.2,
-  WrapText:  true,
-  BaseColor: '#888888',
-  Compact:   false,
+  WrapText: true,
+  BaseColor: '#E53935',
+  Compact: false,
 };
 
 const pane = new Tweakpane.Pane();
 
 const fCommon = pane.addFolder({ title: '基本設定' });
-fCommon.addInput(PARAMS, 'Depth',   { step: 1, min: 0, max: 15, label: '表示する階層の深さ' });
+fCommon.addInput(PARAMS, 'Depth', { step: 1, min: 0, max: 15, label: '表示する階層の深さ' });
 fCommon.addInput(PARAMS, 'Compact', { label: 'コンパクト表示（文字＋線のみ）' });
 
 const fA = pane.addFolder({ title: 'コンパクト表示の設定', expanded: false });
 fA.addInput(PARAMS, 'Height', { step: 0.5, min: 5, max: 50, label: '行の間隔' });
 
 const fBC = pane.addFolder({ title: 'ボックス表示の設定', expanded: true });
-fBC.addInput(PARAMS, 'BoxWidth',   { step: 1,   min: 60,  max: 240, label: 'ボックスの幅' });
-fBC.addInput(PARAMS, 'BoxHeight',  { step: 1,   min: 20,  max: 80,  label: 'ボックスの高さ' });
-fBC.addInput(PARAMS, 'HSpacing',   { step: 1,   min: 0,   max: 100, label: 'ボックス間の余白' });
+fBC.addInput(PARAMS, 'BoxWidth', { step: 1, min: 60, max: 240, label: 'ボックスの幅' });
+fBC.addInput(PARAMS, 'BoxHeight', { step: 1, min: 20, max: 80, label: 'ボックスの高さ' });
+fBC.addInput(PARAMS, 'HSpacing', { step: 1, min: 0, max: 100, label: 'ボックス間の余白' });
 fBC.addInput(PARAMS, 'Separation', { step: 0.1, min: 0.5, max: 3.0, label: '異なるグループ間の間隔' });
-fBC.addInput(PARAMS, 'VSpacing',   { step: 1,   min: 20,  max: 200, label: '階層間の縦の間隔' });
-fBC.addInput(PARAMS, 'WrapText',   { label: 'テキストを折り返す' });
-fBC.addInput(PARAMS, 'BaseColor',  { label: 'ボックスの色' });
+fBC.addInput(PARAMS, 'VSpacing', { step: 1, min: 20, max: 200, label: '階層間の縦の間隔' });
+fBC.addInput(PARAMS, 'WrapText', { label: 'テキストを折り返す' });
+fBC.addInput(PARAMS, 'BaseColor', { label: 'ボックスの色' });
 
 pane.on('change', () => {
   DEPTH_PALETTE = generatePalette(PARAMS.BaseColor);
@@ -359,7 +359,7 @@ function renderBoxNodes(g, nodes, bw, bh, getPos) {
 
   a.append('rect')
     .attr('width', bw).attr('height', bh)
-    .attr('fill',   d => nodeColor(d.depth).fill)
+    .attr('fill', d => nodeColor(d.depth).fill)
     .attr('stroke', d => nodeColor(d.depth).stroke)
     .attr('stroke-width', 1);
 
@@ -367,8 +367,8 @@ function renderBoxNodes(g, nodes, bw, bh, getPos) {
     a.append('text')
       .attr('x', bw / 2)
       .attr('text-anchor', 'middle')
-      .attr('fill',        d => nodeColor(d.depth).text)
-      .attr('font-size',   '11px')
+      .attr('fill', d => nodeColor(d.depth).text)
+      .attr('font-size', '11px')
       .attr('font-family', "'Hiragino Kaku Gothic Pro',Meiryo,sans-serif"),
     bw, bh
   );
@@ -413,7 +413,7 @@ function drawPatternA(data) {
       .attr('transform', () => `translate(${src.y0 ?? src.y},${src.x0 ?? src.x})`)
       .on('click', function (d) {
         if (d.children) { d._children = d.children; d.children = null; }
-        else             { d.children = d._children; d._children = null; }
+        else { d.children = d._children; d._children = null; }
         update(d);
       });
 
@@ -459,12 +459,12 @@ function drawPatternB(data) {
     (root);
 
   const nodes = root.descendants().filter(d => d.depth <= depth);
-  const links  = root.links().filter(d => d.target.depth <= depth);
+  const links = root.links().filter(d => d.target.depth <= depth);
   const { xMin, xMax, yMax } = calcNodeBounds(nodes);
 
   const pad = { t: bh * 2, r: bw, b: bh * 2, l: bw };
   const svg = d3.select('#svg-container').append('svg')
-    .attr('width',  xMax - xMin + bw + pad.l + pad.r)
+    .attr('width', xMax - xMin + bw + pad.l + pad.r)
     .attr('height', yMax + bh + pad.t + pad.b)
     .attr('xmlns', 'http://www.w3.org/2000/svg');
   const g = svg.append('g').attr('transform', `translate(${-xMin + pad.l},${pad.t})`);
@@ -495,13 +495,13 @@ function drawPatternC(data) {
     (root);
 
   const nodes = root.descendants().filter(d => d.depth <= depth);
-  const links  = root.links().filter(d => d.target.depth <= depth);
+  const links = root.links().filter(d => d.target.depth <= depth);
   const { xMin, xMax, yMax } = calcNodeBounds(nodes);
 
   // 横型レイアウト: d.y → 水平, d.x → 垂直
   const pad = { t: bh, r: bw * 2, b: bh, l: bw };
   const svg = d3.select('#svg-container').append('svg')
-    .attr('width',  yMax + bw + pad.l + pad.r)
+    .attr('width', yMax + bw + pad.l + pad.r)
     .attr('height', xMax - xMin + bh + pad.t + pad.b)
     .attr('xmlns', 'http://www.w3.org/2000/svg');
   const g = svg.append('g').attr('transform', `translate(${pad.l},${-xMin + pad.t})`);
@@ -524,9 +524,9 @@ function drawPatternC(data) {
 function draw(data) {
   if (!data) return;
   d3.select('#svg-container').selectAll('svg').remove();
-  if (PARAMS.Compact)          drawPatternA(data);
+  if (PARAMS.Compact) drawPatternA(data);
   else if (currentPattern === 'B') drawPatternB(data);
-  else                             drawPatternC(data);
+  else drawPatternC(data);
 }
 
 // ============================================================
