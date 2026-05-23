@@ -215,7 +215,7 @@ function generatePalette(baseHex) {
   });
 }
 
-let DEPTH_PALETTE = generatePalette('#4CAF50');
+let DEPTH_PALETTE = generatePalette('#888888');
 const nodeColor = depth => DEPTH_PALETTE[Math.min(depth, DEPTH_PALETTE.length - 1)];
 
 // ============================================================
@@ -230,7 +230,7 @@ const PARAMS = {
   VSpacing:  8,
   Separation: 1.2,
   WrapText:  true,
-  BaseColor: '#4CAF50',
+  BaseColor: '#888888',
   Compact:   false,
 };
 
@@ -359,7 +359,6 @@ function renderBoxNodes(g, nodes, bw, bh, getPos) {
 
   a.append('rect')
     .attr('width', bw).attr('height', bh)
-    .attr('rx', 6).attr('ry', 6)
     .attr('fill',   d => nodeColor(d.depth).fill)
     .attr('stroke', d => nodeColor(d.depth).stroke)
     .attr('stroke-width', 1);
