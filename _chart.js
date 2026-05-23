@@ -157,16 +157,42 @@ function csvToJson(rows) {
 // ============================================================
 // カラーヘルパー & 動的パレット生成
 // ============================================================
-function hexToHsl(hex) {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
+function hexToHsl(color) {
+  let r = 0, g = 0, b = 0;
+
+  if (typeof color === 'string') {
+    let cleaned = color.trim().toLowerCase();
+    if (cleaned.startsWith('#')) {
+      if (cleaned.length === 4) {
+        r = parseInt(cleaned[1] + cleaned[1], 16) / 255;
+        g = parseInt(cleaned[2] + cleaned[2], 16) / 255;
+        b = parseInt(cleaned[3] + cleaned[3], 16) / 255;
+      } else if (cleaned.length >= 7) {
+        r = parseInt(cleaned.slice(1, 3), 16) / 255;
+        g = parseInt(cleaned.slice(3, 5), 16) / 255;
+        b = parseInt(cleaned.slice(5, 7), 16) / 255;
+      }
+    } else if (cleaned.startsWith('rgb')) {
+      const match = cleaned.match(/\d+(\.\d+)?/g);
+      if (match) {
+        r = parseFloat(match[0]) / 255;
+        g = parseFloat(match[1]) / 255;
+        b = parseFloat(match[2]) / 255;
+      }
+    }
+  } else if (color && typeof color === 'object') {
+    let cr = color.r != null ? color.r : 0;
+    let cg = color.g != null ? color.g : 0;
+    let cb = color.b != null ? color.b : 0;
+    r = cr > 1 ? cr / 255 : cr;
+    g = cg > 1 ? cg / 255 : cg;
+    b = cb > 1 ? cb / 255 : cb;
+  }
+
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h, s;
+  let h = 0, s = 0;
   const l = (max + min) / 2;
-  if (max === min) {
-    h = s = 0;
-  } else {
+  if (max !== min) {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
@@ -206,16 +232,16 @@ function hslToHex(h, s, l) {
 function generatePalette(baseHex) {
   const [h, s, basL] = hexToHsl(baseHex);
   return Array.from({ length: 8 }, (_, i) => {
-    const l      = Math.min(95, Math.max(10, basL + 35 - i * 11));
+    const l = Math.min(95, Math.max(10, basL + 35 - i * 11));
     const lStroke = Math.min(93, Math.max(10, l - 12));
-    const fill   = hslToHex(h, s, l);
+    const fill = hslToHex(h, s, l);
     const stroke = hslToHex(h, Math.max(s - 10, 0), lStroke);
-    const text   = l >= 52 ? '#111111' : '#FFFFFF';
+    const text = l >= 52 ? '#111111' : '#FFFFFF';
     return { fill, text, stroke };
   });
 }
 
-let DEPTH_PALETTE = generatePalette('#E53935');
+let DEPTH_PALETTE = generatePalette('#530100');
 const nodeColor = depth => DEPTH_PALETTE[Math.min(depth, DEPTH_PALETTE.length - 1)];
 
 // ============================================================
@@ -230,7 +256,7 @@ const PARAMS = {
   VSpacing: 8,
   Separation: 1.2,
   WrapText: true,
-  BaseColor: '#E53935',
+  BaseColor: '#530100',
   Compact: false,
 };
 
@@ -265,7 +291,7 @@ pane.addButton({ title: '📥 SVGをダウンロード' }).on('click', () => dow
 // ============================================================
 const EMBED_STYLES = `
   .link    { fill:none; stroke:#333; stroke-opacity:0.4; stroke-width:1px; }
-  .link-bc { fill:none; stroke:#555; stroke-width:1.5px; }
+  .link-bc { fill:none; stroke:#555; stroke-width:1px; }
   .node text    { font-size:11px; }
   .node-bc text { font-size:11px; }
   text { font-family:'Hiragino Kaku Gothic Pro',Meiryo,Arial,sans-serif; }
