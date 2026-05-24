@@ -111,6 +111,19 @@ svg {
   background: #fff;
 }
 
+/* ── Box node hover ── */
+.node-bc a {
+  transition: opacity 0.15s ease-out;
+}
+
+.node-bc a:hover {
+  opacity: 0.6;
+}
+
+.node-bc a:hover text {
+  text-decoration: underline;
+}
+
 /* ── D3 link styles ── */
 .link {
   fill: none;
