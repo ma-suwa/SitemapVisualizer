@@ -117,7 +117,7 @@ svg {
 }
 
 .node-bc a:hover {
-  opacity: 0.6;
+  opacity: 0.8;
 }
 
 .node-bc a:hover text {
@@ -136,6 +136,11 @@ svg {
   fill: none;
   stroke: #555;
   stroke-width: 1px;
+}
+
+/* ── Tweakpane download button 2x height ── */
+.tp-btnv_b {
+  min-height: 48px !important;
 }
 
 /* ── Tweakpane pinned bottom-right ── */

@@ -476,12 +476,15 @@ function drawPatternB(data) {
   const { Depth: depth, BoxWidth: bw, BoxHeight: bh, HSpacing: hsp, VSpacing: vsp } = PARAMS;
 
   const root = d3.hierarchy(data);
+  const allNodes = root.descendants().filter(d => d.depth <= depth);
+  const autoHsp = Math.max(2, Math.round(hsp * Math.min(1, allNodes.length / 15)));
+
   d3.tree()
-    .nodeSize([bw + hsp, bh + vsp])
+    .nodeSize([bw + autoHsp, bh + vsp])
     .separation((a, b) => a.parent === b.parent ? 1 : PARAMS.Separation)
     (root);
 
-  const nodes = root.descendants().filter(d => d.depth <= depth);
+  const nodes = allNodes;
   const links = root.links().filter(d => d.target.depth <= depth);
   const { xMin, xMax, yMax } = calcNodeBounds(nodes);
 
@@ -511,13 +514,16 @@ function drawPatternC(data) {
   const { Depth: depth, BoxWidth: bw, BoxHeight: bh, HSpacing: hsp, VSpacing: vsp } = PARAMS;
 
   const root = d3.hierarchy(data);
+  const allNodes = root.descendants().filter(d => d.depth <= depth);
+  const autoHsp = Math.max(2, Math.round(hsp * Math.min(1, allNodes.length / 15)));
+
   // breadth方向(x) = 縦間隔, depth方向(y) = 横間隔
   d3.tree()
-    .nodeSize([bh + hsp, bw + vsp])
+    .nodeSize([bh + autoHsp, bw + vsp])
     .separation((a, b) => a.parent === b.parent ? 1 : PARAMS.Separation)
     (root);
 
-  const nodes = root.descendants().filter(d => d.depth <= depth);
+  const nodes = allNodes;
   const links = root.links().filter(d => d.target.depth <= depth);
   const { xMin, xMax, yMax } = calcNodeBounds(nodes);
 
