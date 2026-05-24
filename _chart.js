@@ -476,16 +476,15 @@ function drawPatternB(data) {
   const { Depth: depth, BoxWidth: bw, BoxHeight: bh, HSpacing: hsp, VSpacing: vsp } = PARAMS;
 
   const root = d3.hierarchy(data);
-  const allNodes = root.descendants().filter(d => d.depth <= depth);
-  const autoHsp = Math.max(2, Math.round(hsp * Math.min(1, allNodes.length / 15)));
+  root.each(d => { if (d.depth >= depth && d.children) d.children = null; });
 
   d3.tree()
-    .nodeSize([bw + autoHsp, bh + vsp])
+    .nodeSize([bw + hsp, bh + vsp])
     .separation((a, b) => a.parent === b.parent ? 1 : PARAMS.Separation)
     (root);
 
-  const nodes = allNodes;
-  const links = root.links().filter(d => d.target.depth <= depth);
+  const nodes = root.descendants();
+  const links = root.links();
   const { xMin, xMax, yMax } = calcNodeBounds(nodes);
 
   const pad = { t: bh * 2, r: bw, b: bh * 2, l: bw };
@@ -514,17 +513,16 @@ function drawPatternC(data) {
   const { Depth: depth, BoxWidth: bw, BoxHeight: bh, HSpacing: hsp, VSpacing: vsp } = PARAMS;
 
   const root = d3.hierarchy(data);
-  const allNodes = root.descendants().filter(d => d.depth <= depth);
-  const autoHsp = Math.max(2, Math.round(hsp * Math.min(1, allNodes.length / 15)));
+  root.each(d => { if (d.depth >= depth && d.children) d.children = null; });
 
   // breadth方向(x) = 縦間隔, depth方向(y) = 横間隔
   d3.tree()
-    .nodeSize([bh + autoHsp, bw + vsp])
+    .nodeSize([bh + hsp, bw + vsp])
     .separation((a, b) => a.parent === b.parent ? 1 : PARAMS.Separation)
     (root);
 
-  const nodes = allNodes;
-  const links = root.links().filter(d => d.target.depth <= depth);
+  const nodes = root.descendants();
+  const links = root.links();
   const { xMin, xMax, yMax } = calcNodeBounds(nodes);
 
   // 横型レイアウト: d.y → 水平, d.x → 垂直
