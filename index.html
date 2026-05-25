@@ -11,19 +11,121 @@
 
 <body>
   <div class="wrapper">
-    <h1>サイトマップ可視化くん（β版）</h1>
-    <p>各ページのURLが並んだ<a href="default.csv">こんな感じの</a>CSVファイルをアップロードしてね。<a href="default2.csv">https://wwwがなくても大丈夫。</a></p>
-  </div>
-
-  <div class="chart-controls">
-    <input type="file" id="csvFile" accept=".csv" />
-    <div class="pattern-tabs">
-      <button class="tab-btn active" data-pattern="B">縦に並べる</button>
-      <button class="tab-btn" data-pattern="C">横に並べる</button>
+    <div class="site-logo">
+      <div class="logo-group">
+        <img src="svg/chapome.svg" alt="キャラクター" class="logo-chapome">
+        <img src="svg/tagline.svg" alt="サイトマップ可視化くん（β版）" class="logo-tagline">
+      </div>
+      <p class="site-description">URLのリストをアップロードするだけで、サイトマップを自動生成。<br>SVGでダウンロードしてFigmaなどでそのまま編集できます。</p>
     </div>
+    <div class="description" id="csv-description">
+      <div class="desc-header">CSVファイルのフォーマット</div>
+      <div class="desc-body">
+        <div class="desc-text-col">
+          <p>各ページのURLを1行1URLで並べたCSVファイルをアップロードしてください。</p>
+          <ul class="desc-rules">
+            <li><span class="col-badge">A列</span>URL（必須）</li>
+            <li><span class="col-badge col-badge--opt">B列</span>表示ラベル（任意）</li>
+            <li class="desc-note">https:// や www. がなくても自動補完します</li>
+          </ul>
+        </div>
+        <div class="desc-preview-col">
+          <div class="spreadsheet-mock">
+            <div class="sm-header">
+              <div class="sm-cell sm-rownum"></div>
+              <div class="sm-cell sm-col-head">A</div>
+              <div class="sm-cell sm-col-head sm-col-head--b">B</div>
+            </div>
+            <div class="sm-row">
+              <div class="sm-cell sm-rownum">1</div>
+              <div class="sm-cell sm-url">https://example.com/</div>
+              <div class="sm-cell sm-label">トップ</div>
+            </div>
+            <div class="sm-row">
+              <div class="sm-cell sm-rownum">2</div>
+              <div class="sm-cell sm-url">https://example.com/about/</div>
+              <div class="sm-cell sm-label">会社概要</div>
+            </div>
+            <div class="sm-row">
+              <div class="sm-cell sm-rownum">3</div>
+              <div class="sm-cell sm-url">example.com/contact/</div>
+              <div class="sm-cell sm-label"></div>
+            </div>
+            <div class="sm-row">
+              <div class="sm-cell sm-rownum">4</div>
+              <div class="sm-cell sm-url">example.com/news/</div>
+              <div class="sm-cell sm-label"></div>
+            </div>
+            <div class="sm-row">
+              <div class="sm-cell sm-rownum">5</div>
+              <div class="sm-cell sm-url">example.com/news/article1/</div>
+              <div class="sm-cell sm-label"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-controls">
+      <input type="file" id="csvFile" accept=".csv" />
+      <div class="pattern-tabs">
+        <button class="tab-btn active" data-pattern="B" title="縦に並べる">
+          <svg class="tab-icon" viewBox="0 0 36 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="11" y="1" width="14" height="7" rx="2" fill="currentColor"/>
+            <line x1="18" y1="8" x2="18" y2="12" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="9" y1="12" x2="27" y2="12" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="9" y1="12" x2="9" y2="14" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="27" y1="12" x2="27" y2="14" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="4" y="14" width="10" height="7" rx="1.5" fill="currentColor" opacity="0.65"/>
+            <rect x="22" y="14" width="10" height="7" rx="1.5" fill="currentColor" opacity="0.65"/>
+            <line x1="9" y1="21" x2="9" y2="24" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="5" y1="24" x2="13" y2="24" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="5" y1="24" x2="5" y2="26" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="13" y1="24" x2="13" y2="26" stroke="currentColor" stroke-width="1.2"/>
+            <rect x="3" y="26" width="4" height="5" rx="1" fill="currentColor" opacity="0.4"/>
+            <rect x="11" y="26" width="4" height="5" rx="1" fill="currentColor" opacity="0.4"/>
+            <line x1="27" y1="21" x2="27" y2="24" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="23" y1="24" x2="31" y2="24" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="23" y1="24" x2="23" y2="26" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="31" y1="24" x2="31" y2="26" stroke="currentColor" stroke-width="1.2"/>
+            <rect x="21" y="26" width="4" height="5" rx="1" fill="currentColor" opacity="0.4"/>
+            <rect x="29" y="26" width="4" height="5" rx="1" fill="currentColor" opacity="0.4"/>
+          </svg>
+          <span>縦並べ</span>
+        </button>
+        <button class="tab-btn" data-pattern="C" title="横に並べる">
+          <svg class="tab-icon" viewBox="0 0 36 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="12" width="12" height="8" rx="2" fill="currentColor"/>
+            <line x1="12" y1="16" x2="17" y2="16" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="17" y1="3" x2="17" y2="29" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="17" y1="3" x2="20" y2="3" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="17" y1="16" x2="20" y2="16" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="17" y1="29" x2="20" y2="29" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="20" y="0" width="10" height="6" rx="1.5" fill="currentColor" opacity="0.65"/>
+            <rect x="20" y="13" width="10" height="6" rx="1.5" fill="currentColor" opacity="0.65"/>
+            <rect x="20" y="26" width="10" height="6" rx="1.5" fill="currentColor" opacity="0.65"/>
+            <line x1="30" y1="3" x2="33" y2="3" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="33" y1="1" x2="33" y2="5" stroke="currentColor" stroke-width="1.2"/>
+            <rect x="33" y="0" width="3" height="2" rx="0.5" fill="currentColor" opacity="0.4"/>
+            <rect x="33" y="4" width="3" height="2" rx="0.5" fill="currentColor" opacity="0.4"/>
+            <line x1="30" y1="29" x2="33" y2="29" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="33" y1="27" x2="33" y2="31" stroke="currentColor" stroke-width="1.2"/>
+            <rect x="33" y="26" width="3" height="2" rx="0.5" fill="currentColor" opacity="0.4"/>
+            <rect x="33" y="30" width="3" height="2" rx="0.5" fill="currentColor" opacity="0.4"/>
+          </svg>
+          <span>横並べ</span>
+        </button>
+      </div>
+    </div>
+
+
+    <div class="main-layout">
+      <aside id="pane-container"></aside>
+      <div id="svg-container"></div>
+    </div>
+
   </div>
 
-  <div id="svg-container"></div>
 
   <script src="lib/papaparse.min.js"
     integrity="sha512-dfX5uYVXzyU8+KHqj8bjo7UkOdg18PaOtpa48djpNbZHwExddghZ+ZmzWT06R5v6NSk3ZUfsH6FNEDepLx9hPQ=="

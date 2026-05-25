@@ -2,7 +2,7 @@
   --black: #1a1a1a;
   --keycolor: #555555;
   --keydark: #333333;
-  --bgcolor: rgb(230, 230, 230);
+  --bgcolor: #F5F5F5;
 }
 
 * {
@@ -24,7 +24,7 @@ a {
 
 /* ── Header wrapper ── */
 .wrapper {
-  padding: 40px 80px 24px;
+  padding: 24px 40px;
 }
 
 h1 {
@@ -34,9 +34,170 @@ h1 {
   margin-bottom: 14px;
 }
 
-.wrapper p {
-  margin-bottom: 16px;
+/* ── Site logo (SVG横並び) ── */
+.site-logo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.logo-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logo-chapome {
+  height: clamp(18px, 3vw, 120px);
+  width: auto;
+}
+
+.logo-tagline {
+  height: clamp(18px, 3vw, 32px);
+  width: auto;
+}
+
+.site-description {
+  font-size: clamp(10px, 1.1vw, 13px);
+  color: #555;
+  line-height: 1.7;
+  text-align: right;
+}
+
+.description {
+  padding: 16px 20px 20px;
   font-size: 14px;
+  background-color: #FFF;
+  margin-bottom: 40px;
+  border-radius: 4px;
+}
+
+.desc-header {
+  font-weight: bold;
+  font-size: 15px;
+  margin-bottom: 14px;
+}
+
+.desc-body {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.desc-text-col {
+  flex: 1;
+  min-width: 180px;
+}
+
+.desc-text-col p {
+  margin-bottom: 12px;
+  line-height: 1.65;
+}
+
+.desc-rules {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.desc-rules li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.col-badge {
+  background: #2563eb;
+  color: #fff;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.col-badge--opt {
+  background: #9ca3af;
+}
+
+.desc-note {
+  color: #666;
+  font-size: 13px;
+}
+
+/* Spreadsheet mockup */
+.desc-preview-col {
+  flex-shrink: 0;
+}
+
+.spreadsheet-mock {
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  overflow: hidden;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+}
+
+.sm-header {
+  display: flex;
+  background: #f3f4f6;
+  border-bottom: 2px solid #d1d5db;
+}
+
+.sm-row {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.sm-row:last-child {
+  border-bottom: none;
+}
+
+.sm-row:nth-child(even) {
+  background: #f9fafb;
+}
+
+.sm-cell {
+  padding: 4px 8px;
+  line-height: 1.5;
+}
+
+.sm-rownum {
+  min-width: 24px;
+  text-align: right;
+  color: #9ca3af;
+  font-size: 11px;
+  background: #f3f4f6;
+  border-right: 1px solid #d1d5db;
+  padding: 4px 5px;
+}
+
+.sm-col-head {
+  font-weight: bold;
+  color: #4b5563;
+  text-align: center;
+  min-width: 180px;
+  border-right: 1px solid #d1d5db;
+}
+
+.sm-col-head--b {
+  min-width: 72px;
+}
+
+.sm-url {
+  min-width: 180px;
+  color: #1d4ed8;
+  border-right: 1px solid #e5e7eb;
+}
+
+.sm-label {
+  min-width: 72px;
+  color: #374151;
 }
 
 /* ── File input ── */
@@ -55,13 +216,11 @@ input[type="file"] {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 16px 80px;
-  background: rgba(255, 255, 255, 0.5);
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 16px 16px;
   position: sticky;
   top: 0;
   z-index: 10;
+  background-color: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(6px);
 }
 
@@ -72,15 +231,19 @@ input[type="file"] {
 }
 
 .tab-btn {
+  width: 60px;
+  height: 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 8px 22px 6px;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 4px 5px;
   border: 1px solid rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
   color: #000;
-  font-size: 14px;
+  font-size: 10px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   line-height: 1.2;
@@ -94,6 +257,12 @@ input[type="file"] {
   background: #000;
   color: #fff;
   border-color: #000;
+}
+
+.tab-icon {
+  width: 36px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 /* ── SVG container ── */

@@ -111,6 +111,18 @@ let jsonData = null;
 let currentPattern = 'B';
 
 // ============================================================
+// ランダムロゴ: chapome 70% / kuropome 15% / shiropome 15%
+// ============================================================
+function setRandomLogo() {
+  const rand = Math.random();
+  const src = rand < 0.70 ? 'svg/chapome.svg'
+    : rand < 0.85 ? 'svg/kuropome.svg'
+      : 'svg/shiropome.svg';
+  const img = document.querySelector('.logo-chapome');
+  if (img) img.src = src;
+}
+
+// ============================================================
 // CSV → JSON  (各ノードに url / label を付与)
 // rows: PapaParse の results.data (string[][] 形式)
 // 1列目 = URL、2列目 = 表示ラベル(任意)
@@ -268,8 +280,8 @@ fCommon.addInput(PARAMS, 'Compact', { label: 'コンパクト表示（文字＋�
 
 
 const fBC = pane.addFolder({ title: 'ボックス表示の設定', expanded: false });
-fBC.addInput(PARAMS, 'BoxWidth', { step: 1, min: 60, max: 240, label: 'ボックスの幅' });
-fBC.addInput(PARAMS, 'BoxHeight', { step: 1, min: 20, max: 80, label: 'ボックスの高さ' });
+fBC.addInput(PARAMS, 'BoxWidth', { step: 1, min: 20, max: 300, label: 'ボックスの幅' });
+fBC.addInput(PARAMS, 'BoxHeight', { step: 1, min: 20, max: 300, label: 'ボックスの高さ' });
 fBC.addInput(PARAMS, 'HSpacing', { step: 1, min: 0, max: 100, label: 'ボックス間の余白' });
 fBC.addInput(PARAMS, 'Separation', { step: 0.1, min: 0.5, max: 3.0, label: '異なるグループ間の間隔' });
 fBC.addInput(PARAMS, 'VSpacing', { step: 1, min: 20, max: 200, label: '階層間の縦の間隔' });
@@ -504,6 +516,11 @@ function drawPatternB(data) {
     });
 
   renderBoxNodes(g, nodes, bw, bh, d => ({ x: d.x - bw / 2, y: d.y - bh / 2 }));
+
+  // ルートノード(x=0)が画面中央に来るようスクロール位置を設定
+  const container = document.getElementById('svg-container');
+  const rootCenterX = -xMin + pad.l + bw / 2;
+  container.scrollLeft = rootCenterX - container.clientWidth / 2;
 }
 
 // ============================================================
@@ -560,6 +577,8 @@ function draw(data) {
 // Event listeners
 // ============================================================
 document.addEventListener('DOMContentLoaded', function () {
+  setRandomLogo();
+
   Papa.parse(DEFAULT_CSV, {
     complete: results => {
       jsonData = csvToJson(results.data);
@@ -570,6 +589,10 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('csvFile').addEventListener('change', function (e) {
     const file = e.target.files[0];
     if (!file) return;
+
+    const desc = document.getElementById('csv-description');
+    if (desc) desc.remove();
+
     Papa.parse(file, {
       complete: results => {
         jsonData = csvToJson(results.data);
