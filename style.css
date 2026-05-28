@@ -2,7 +2,7 @@
   --black: #1a1a1a;
   --keycolor: #555555;
   --keydark: #333333;
-  --bgcolor: #F5F5F5;
+  --bgcolor: #f3e5cc;
 }
 
 * {
@@ -12,9 +12,10 @@
 }
 
 body {
-  font-family: 'ヒラギノ角ゴシック', 'Hiragino Kaku Gothic Pro', 'メイリオ', Meiryo,
-    'ＭＳ Ｐゴシック', 'MS PGothic', sans-serif;
-  background-color: var(--bgcolor);
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'ヒラギノ角ゴ ProN W3',
+    'Hiragino Kaku Gothic ProN', 'メイリオ', Meiryo, sans-serif;
+  background: var(--bgcolor);
+  min-height: 100vh;
   color: var(--black);
 }
 
@@ -49,12 +50,12 @@ h1 {
 }
 
 .logo-chapome {
-  height: clamp(18px, 3vw, 120px);
+  height: 64px;
   width: auto;
 }
 
 .logo-tagline {
-  height: clamp(18px, 3vw, 32px);
+  height: 36px;
   width: auto;
 }
 
@@ -69,13 +70,13 @@ h1 {
   padding: 16px 20px 20px;
   font-size: 14px;
   background-color: #FFF;
-  margin-bottom: 40px;
+  margin-bottom: 16px;
   border-radius: 4px;
 }
 
 .desc-header {
   font-weight: bold;
-  font-size: 15px;
+  font-size: 20px;
   margin-bottom: 14px;
 }
 
@@ -132,6 +133,9 @@ h1 {
 /* Spreadsheet mockup */
 .desc-preview-col {
   flex-shrink: 0;
+  width: 50%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .spreadsheet-mock {
@@ -139,18 +143,27 @@ h1 {
   border-radius: 4px;
   overflow: hidden;
   font-size: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+}
+
+.sm-col-url {
+  width: 50%;
+}
+
+.sm-col-label {
+  width: 50%;
 }
 
 .sm-header {
-  display: flex;
   background: #f3f4f6;
   border-bottom: 2px solid #d1d5db;
 }
 
 .sm-row {
-  display: flex;
   border-bottom: 1px solid #e5e7eb;
 }
 
@@ -158,7 +171,7 @@ h1 {
   border-bottom: none;
 }
 
-.sm-row:nth-child(even) {
+.sm-row:nth-child(even) td {
   background: #f9fafb;
 }
 
@@ -167,46 +180,58 @@ h1 {
   line-height: 1.5;
 }
 
-.sm-rownum {
-  min-width: 24px;
-  text-align: right;
-  color: #9ca3af;
-  font-size: 11px;
-  background: #f3f4f6;
-  border-right: 1px solid #d1d5db;
-  padding: 4px 5px;
-}
-
 .sm-col-head {
   font-weight: bold;
   color: #4b5563;
   text-align: center;
-  min-width: 180px;
   border-right: 1px solid #d1d5db;
+  padding: 6px 8px;
 }
 
-.sm-col-head--b {
-  min-width: 72px;
+.sm-col-head:last-child {
+  border-right: none;
 }
 
 .sm-url {
-  min-width: 180px;
   color: #1d4ed8;
   border-right: 1px solid #e5e7eb;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
 }
 
 .sm-label {
-  min-width: 72px;
   color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── File input ── */
 input[type="file"] {
-  background: transparent;
-  color: inherit;
-  border: none;
+  display: none;
+}
+
+.file-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 28px;
+  min-height: 52px;
+  font-weight: bold;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 1000px;
+  background: #000;
+  color: #fff;
+  font-size: 17.5px;
   cursor: pointer;
-  font-size: 14px;
+  transition: background 0.15s;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.file-upload-btn:hover {
+  background: #333;
 }
 
 /* ── Chart controls bar ── */
@@ -222,6 +247,7 @@ input[type="file"] {
   z-index: 10;
   background-color: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(6px);
+  border-radius: 4px;
 }
 
 /* ── Pattern tabs ── */
@@ -231,19 +257,17 @@ input[type="file"] {
 }
 
 .tab-btn {
-  width: 60px;
-  height: 60px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 6px 4px 5px;
+  gap: 6px;
+  padding: 8px 12px;
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 10px;
   background: transparent;
   color: #000;
-  font-size: 10px;
+  font-size: 14px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   line-height: 1.2;
@@ -260,9 +284,15 @@ input[type="file"] {
 }
 
 .tab-icon {
-  width: 36px;
-  height: 28px;
+  width: 33px;
+  height: 33px;
   flex-shrink: 0;
+}
+
+/* ── Main layout ── */
+.main-layout {
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 /* ── SVG container ── */
@@ -275,7 +305,7 @@ input[type="file"] {
   padding-bottom: 60px;
 }
 
-svg {
+#svg-container svg {
   display: block;
   background: #fff;
 }
@@ -310,6 +340,9 @@ svg {
 /* ── Tweakpane download button 2x height ── */
 .tp-btnv_b {
   min-height: 48px !important;
+  font-size: 1.5em !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'ヒラギノ角ゴ ProN W3',
+    'Hiragino Kaku Gothic ProN', 'メイリオ', Meiryo, sans-serif !important;
 }
 
 /* ── Tweakpane pinned bottom-right ── */

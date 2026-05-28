@@ -111,12 +111,12 @@ let jsonData = null;
 let currentPattern = 'B';
 
 // ============================================================
-// ランダムロゴ: chapome 70% / kuropome 15% / shiropome 15%
+// ランダムロゴ: chapome 98% / kuropome 1% / shiropome 1%
 // ============================================================
 function setRandomLogo() {
   const rand = Math.random();
-  const src = rand < 0.70 ? 'svg/chapome.svg'
-    : rand < 0.85 ? 'svg/kuropome.svg'
+  const src = rand < 0.98 ? 'svg/chapome.svg'
+    : rand < 0.99 ? 'svg/kuropome.svg'
       : 'svg/shiropome.svg';
   const img = document.querySelector('.logo-chapome');
   if (img) img.src = src;

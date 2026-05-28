@@ -16,102 +16,81 @@
         <img src="svg/chapome.svg" alt="キャラクター" class="logo-chapome">
         <img src="svg/tagline.svg" alt="サイトマップ可視化くん（β版）" class="logo-tagline">
       </div>
-      <p class="site-description">URLのリストをアップロードするだけで、サイトマップを自動生成。<br>SVGでダウンロードしてFigmaなどでそのまま編集できます。</p>
     </div>
     <div class="description" id="csv-description">
-      <div class="desc-header">CSVファイルのフォーマット</div>
       <div class="desc-body">
         <div class="desc-text-col">
-          <p>各ページのURLを1行1URLで並べたCSVファイルをアップロードしてください。</p>
+          <p>URLのリストを記載したcsvファイルをアップロードするだけで、サイトマップを自動生成。</br>SVGでダウンロードしてFigmaなどでそのまま編集できます。</p>
           <ul class="desc-rules">
-            <li><span class="col-badge">A列</span>URL（必須）</li>
-            <li><span class="col-badge col-badge--opt">B列</span>表示ラベル（任意）</li>
-            <li class="desc-note">https:// や www. がなくても自動補完します</li>
+            <li class="desc-note">※https:// や www. がなくても自動補完します。</li>
+            <li class="desc-note"><a href="default.csv" download>サンプルCSVをダウンロード</a></li>
           </ul>
         </div>
         <div class="desc-preview-col">
-          <div class="spreadsheet-mock">
-            <div class="sm-header">
-              <div class="sm-cell sm-rownum"></div>
-              <div class="sm-cell sm-col-head">A</div>
-              <div class="sm-cell sm-col-head sm-col-head--b">B</div>
-            </div>
-            <div class="sm-row">
-              <div class="sm-cell sm-rownum">1</div>
-              <div class="sm-cell sm-url">https://example.com/</div>
-              <div class="sm-cell sm-label">トップ</div>
-            </div>
-            <div class="sm-row">
-              <div class="sm-cell sm-rownum">2</div>
-              <div class="sm-cell sm-url">https://example.com/about/</div>
-              <div class="sm-cell sm-label">会社概要</div>
-            </div>
-            <div class="sm-row">
-              <div class="sm-cell sm-rownum">3</div>
-              <div class="sm-cell sm-url">example.com/contact/</div>
-              <div class="sm-cell sm-label"></div>
-            </div>
-            <div class="sm-row">
-              <div class="sm-cell sm-rownum">4</div>
-              <div class="sm-cell sm-url">example.com/news/</div>
-              <div class="sm-cell sm-label"></div>
-            </div>
-            <div class="sm-row">
-              <div class="sm-cell sm-rownum">5</div>
-              <div class="sm-cell sm-url">example.com/news/article1/</div>
-              <div class="sm-cell sm-label"></div>
-            </div>
-          </div>
+          <table class="spreadsheet-mock">
+            <colgroup>
+              <col class="sm-col-url">
+              <col class="sm-col-label">
+            </colgroup>
+            <thead>
+              <tr class="sm-header">
+                <th class="sm-cell sm-col-head"><span class="col-badge">A列</span>URL（必須）</th>
+                <th class="sm-cell sm-col-head sm-col-head--b"><span class="col-badge col-badge--opt">B列</span>表示ラベル（任意）
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="sm-row">
+                <td class="sm-cell sm-url">https://example.com/</td>
+                <td class="sm-cell sm-label">トップ</td>
+              </tr>
+              <tr class="sm-row">
+                <td class="sm-cell sm-url">https://example.com/about/</td>
+                <td class="sm-cell sm-label">会社概要</td>
+              </tr>
+              <tr class="sm-row">
+                <td class="sm-cell sm-url">example.com/contact/</td>
+                <td class="sm-cell sm-label">コンタクト</td>
+              </tr>
+              <tr class="sm-row">
+                <td class="sm-cell sm-url">example.com/news/</td>
+                <td class="sm-cell sm-label">ニュース</td>
+              </tr>
+              <tr class="sm-row">
+                <td class="sm-cell sm-url">example.com/news/article1/</td>
+                <td class="sm-cell sm-label">記事1</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
 
     <div class="chart-controls">
+      <label class="file-upload-btn" for="csvFile">CSVファイルをアップロード</label>
       <input type="file" id="csvFile" accept=".csv" />
       <div class="pattern-tabs">
         <button class="tab-btn active" data-pattern="B" title="縦に並べる">
-          <svg class="tab-icon" viewBox="0 0 36 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="11" y="1" width="14" height="7" rx="2" fill="currentColor"/>
-            <line x1="18" y1="8" x2="18" y2="12" stroke="currentColor" stroke-width="1.5"/>
-            <line x1="9" y1="12" x2="27" y2="12" stroke="currentColor" stroke-width="1.5"/>
-            <line x1="9" y1="12" x2="9" y2="14" stroke="currentColor" stroke-width="1.5"/>
-            <line x1="27" y1="12" x2="27" y2="14" stroke="currentColor" stroke-width="1.5"/>
-            <rect x="4" y="14" width="10" height="7" rx="1.5" fill="currentColor" opacity="0.65"/>
-            <rect x="22" y="14" width="10" height="7" rx="1.5" fill="currentColor" opacity="0.65"/>
-            <line x1="9" y1="21" x2="9" y2="24" stroke="currentColor" stroke-width="1.2"/>
-            <line x1="5" y1="24" x2="13" y2="24" stroke="currentColor" stroke-width="1.2"/>
-            <line x1="5" y1="24" x2="5" y2="26" stroke="currentColor" stroke-width="1.2"/>
-            <line x1="13" y1="24" x2="13" y2="26" stroke="currentColor" stroke-width="1.2"/>
-            <rect x="3" y="26" width="4" height="5" rx="1" fill="currentColor" opacity="0.4"/>
-            <rect x="11" y="26" width="4" height="5" rx="1" fill="currentColor" opacity="0.4"/>
-            <line x1="27" y1="21" x2="27" y2="24" stroke="currentColor" stroke-width="1.2"/>
-            <line x1="23" y1="24" x2="31" y2="24" stroke="currentColor" stroke-width="1.2"/>
-            <line x1="23" y1="24" x2="23" y2="26" stroke="currentColor" stroke-width="1.2"/>
-            <line x1="31" y1="24" x2="31" y2="26" stroke="currentColor" stroke-width="1.2"/>
-            <rect x="21" y="26" width="4" height="5" rx="1" fill="currentColor" opacity="0.4"/>
-            <rect x="29" y="26" width="4" height="5" rx="1" fill="currentColor" opacity="0.4"/>
+          <svg class="tab-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10.333 7L10.4639 6.9873C10.5494 6.97112 10.6306 6.93938 10.7031 6.89355L10.8047 6.81543C10.9297 6.69699 11 6.53566 11 6.36816V3.52637C11 3.43466 10.9792 3.34395 10.9385 3.26074C10.9078 3.19819 10.8664 3.14055 10.8164 3.09082L10.7637 3.04395L8.43066 1.14941C8.31034 1.05307 8.15755 1 8 1C7.84245 1 7.68966 1.05307 7.56934 1.14941L5.23633 3.04395L5.18359 3.09082C5.13364 3.14055 5.09216 3.19819 5.06152 3.26074C5.02084 3.34395 4.99998 3.43466 5 3.52637V6.36816C5 6.53566 5.07029 6.69699 5.19531 6.81543L5.29688 6.89355C5.3694 6.93938 5.45065 6.97112 5.53613 6.9873L5.66699 7H10.333ZM10 3.71094V6H6V3.71094L8 2.08789L10 3.71094Z" fill="currentColor"/>
+            <path d="M8.5 11.5L8.5 6.5C8.5 6.22386 8.27614 6 8 6C7.72386 6 7.5 6.22386 7.5 6.5L7.5 11.5C7.5 11.7761 7.72386 12 8 12C8.27614 12 8.5 11.7761 8.5 11.5Z" fill="currentColor"/>
+            <path d="M3.5 11V10C3.5 9.72386 3.72386 9.5 4 9.5H12C12.2761 9.5 12.5 9.72386 12.5 10V11C12.5 11.2761 12.7239 11.5 13 11.5C13.2761 11.5 13.5 11.2761 13.5 11V10C13.5 9.17157 12.8284 8.5 12 8.5H4C3.17157 8.5 2.5 9.17157 2.5 10V11C2.5 11.2761 2.72386 11.5 3 11.5C3.27614 11.5 3.5 11.2761 3.5 11Z" fill="currentColor"/>
+            <path d="M7 13V14H9V13H7ZM7 12H9V14C9.51768 14 9.94379 13.6067 9.99512 13.1025L10 13V12C10 11.4477 9.55228 11 9 11H7L6.89746 11.0049C6.39333 11.0562 6 11.4823 6 12V13C6 13.5523 6.44772 14 7 14V12Z" fill="currentColor"/>
+            <path d="M9 5C9 4.44772 8.55228 4 8 4V4C7.44772 4 7 4.44772 7 5V6C7 6.55228 7.44772 7 8 7V7C8.55228 7 9 6.55228 9 6V5Z" fill="currentColor"/>
+            <path d="M2 13V14H4V13H2ZM2 12H4V14C4.51768 14 4.94379 13.6067 4.99512 13.1025L5 13V12C5 11.4477 4.55228 11 4 11H2L1.89746 11.0049C1.39333 11.0562 1 11.4823 1 12V13C1 13.5523 1.44772 14 2 14V12Z" fill="currentColor"/>
+            <path d="M12 13V14H14V13H12ZM12 12H14V14C14.5177 14 14.9438 13.6067 14.9951 13.1025L15 13V12C15 11.4477 14.5523 11 14 11H12L11.8975 11.0049C11.3933 11.0562 11 11.4823 11 12V13C11 13.5523 11.4477 14 12 14V12Z" fill="currentColor"/>
           </svg>
           <span>縦並べ</span>
         </button>
         <button class="tab-btn" data-pattern="C" title="横に並べる">
-          <svg class="tab-icon" viewBox="0 0 36 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="0" y="12" width="12" height="8" rx="2" fill="currentColor"/>
-            <line x1="12" y1="16" x2="17" y2="16" stroke="currentColor" stroke-width="1.5"/>
-            <line x1="17" y1="3" x2="17" y2="29" stroke="currentColor" stroke-width="1.5"/>
-            <line x1="17" y1="3" x2="20" y2="3" stroke="currentColor" stroke-width="1.5"/>
-            <line x1="17" y1="16" x2="20" y2="16" stroke="currentColor" stroke-width="1.5"/>
-            <line x1="17" y1="29" x2="20" y2="29" stroke="currentColor" stroke-width="1.5"/>
-            <rect x="20" y="0" width="10" height="6" rx="1.5" fill="currentColor" opacity="0.65"/>
-            <rect x="20" y="13" width="10" height="6" rx="1.5" fill="currentColor" opacity="0.65"/>
-            <rect x="20" y="26" width="10" height="6" rx="1.5" fill="currentColor" opacity="0.65"/>
-            <line x1="30" y1="3" x2="33" y2="3" stroke="currentColor" stroke-width="1.2"/>
-            <line x1="33" y1="1" x2="33" y2="5" stroke="currentColor" stroke-width="1.2"/>
-            <rect x="33" y="0" width="3" height="2" rx="0.5" fill="currentColor" opacity="0.4"/>
-            <rect x="33" y="4" width="3" height="2" rx="0.5" fill="currentColor" opacity="0.4"/>
-            <line x1="30" y1="29" x2="33" y2="29" stroke="currentColor" stroke-width="1.2"/>
-            <line x1="33" y1="27" x2="33" y2="31" stroke="currentColor" stroke-width="1.2"/>
-            <rect x="33" y="26" width="3" height="2" rx="0.5" fill="currentColor" opacity="0.4"/>
-            <rect x="33" y="30" width="3" height="2" rx="0.5" fill="currentColor" opacity="0.4"/>
+          <svg class="tab-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6.83301 10L6.96387 9.9873C7.04935 9.97112 7.1306 9.93938 7.20312 9.89355L7.30469 9.81543C7.42971 9.69699 7.5 9.53566 7.5 9.36816L7.5 6.52637C7.50002 6.43466 7.47916 6.34395 7.43848 6.26074C7.40784 6.19819 7.36636 6.14055 7.31641 6.09082L7.26367 6.04395L4.93066 4.14941C4.81034 4.05307 4.65755 4 4.5 4C4.34245 4 4.18966 4.05307 4.06934 4.14941L1.73633 6.04394L1.68359 6.09082C1.63364 6.14055 1.59216 6.19819 1.56152 6.26074C1.52084 6.34395 1.49998 6.43466 1.5 6.52637L1.5 9.36816C1.5 9.53566 1.57029 9.69699 1.69531 9.81543L1.79687 9.89355C1.8694 9.93938 1.95065 9.97112 2.03613 9.9873L2.16699 10L6.83301 10ZM6.5 6.71094L6.5 9L2.5 9L2.5 6.71094L4.5 5.08789L6.5 6.71094Z" fill="currentColor"/>
+            <path d="M11 7L7 7C6.72386 7 6.5 7.22386 6.5 7.5C6.5 7.77614 6.72386 8 7 8L11 8C11.2761 8 11.5 7.77614 11.5 7.5C11.5 7.22386 11.2761 7 11 7Z" fill="currentColor"/>
+            <path d="M11.5 12L10.5 12C10.2239 12 10 11.7761 10 11.5L10 3.5C10 3.22386 10.2239 3 10.5 3L11.5 3C11.7761 3 12 2.77614 12 2.5C12 2.22386 11.7761 2 11.5 2L10.5 2C9.67157 2 9 2.67157 9 3.5L9 11.5C9 12.3284 9.67157 13 10.5 13L11.5 13C11.7761 13 12 12.7761 12 12.5C12 12.2239 11.7761 12 11.5 12Z" fill="currentColor"/>
+            <path d="M14 7V6H12V7H14ZM14 8H12V6C11.4823 6 11.0562 6.39333 11.0049 6.89746L11 7V8C11 8.55228 11.4477 9 12 9H14L14.1025 8.99512C14.6067 8.94379 15 8.51768 15 8V7C15 6.44772 14.5523 6 14 6V8Z" fill="currentColor"/>
+            <path d="M5.5 8C5.5 7.44772 5.05228 7 4.5 7V7C3.94772 7 3.5 7.44772 3.5 8L3.5 9C3.5 9.55228 3.94772 10 4.5 10V10C5.05228 10 5.5 9.55228 5.5 9L5.5 8Z" fill="currentColor"/>
+            <path d="M14 12V11H12V12H14ZM14 13H12V11C11.4823 11 11.0562 11.3933 11.0049 11.8975L11 12V13C11 13.5523 11.4477 14 12 14H14L14.1025 13.9951C14.6067 13.9438 15 13.5177 15 13V12C15 11.4477 14.5523 11 14 11V13Z" fill="currentColor"/>
+            <path d="M14 2V1H12V2H14ZM14 3H12V1C11.4823 1 11.0562 1.39333 11.0049 1.89746L11 2V3C11 3.55228 11.4477 4 12 4H14L14.1025 3.99512C14.6067 3.94379 15 3.51768 15 3V2C15 1.44772 14.5523 1 14 1V3Z" fill="currentColor"/>
           </svg>
           <span>横並べ</span>
         </button>
