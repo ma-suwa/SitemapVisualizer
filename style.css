@@ -302,6 +302,9 @@ input[type="file"] {
   overflow-y: auto;
   background: #fff;
   min-height: 200px;
+  /* 高さに上限を設け、はみ出しはコンテナ内スクロールに収める
+     (横並べ時に横スクロールバーがページ最下部へ逃げるのを防ぐ) */
+  max-height: calc(100vh - 90px);
   padding-bottom: 60px;
 }
 

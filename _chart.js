@@ -163,7 +163,22 @@ function csvToJson(rows) {
     }
   });
 
+  computePageCounts(root);
   return root;
+}
+
+// ============================================================
+// 各ノードに pageCount(=全子孫ノード数)を付与
+// Depth による枝刈りの前に生データツリーで数えるため、
+// 画面に表示されない深い階層のページも件数に含まれる。
+// ============================================================
+function computePageCounts(node) {
+  let count = 0;
+  (node.children || []).forEach(child => {
+    count += 1 + computePageCounts(child);
+  });
+  node.pageCount = count;
+  return count;
 }
 
 // ============================================================
@@ -262,25 +277,51 @@ const nodeColor = depth => DEPTH_PALETTE[Math.min(depth, DEPTH_PALETTE.length - 
 const PARAMS = {
   Depth: 4,
   Height: 10,
-  BoxWidth: 120,
-  BoxHeight: 36,
+  BoxWidth: 200,
+  BoxHeight: 80,
   HSpacing: 8,
   VSpacing: 8,
   Separation: 1.2,
   WrapText: true,
   BaseColor: '#530100',
   Compact: false,
+  ShowTitle: true,
+  ShowDirectory: true,
+  ShowBadge: true,
+  Remove1: '',
+  Remove2: '',
+  Remove3: '',
 };
+
+// 日本語ラベルから指定文字列を削除(非破壊。描画時に適用)
+function stripRemovals(str) {
+  if (!str) return str;
+  let out = str;
+  [PARAMS.Remove1, PARAMS.Remove2, PARAMS.Remove3].forEach(r => {
+    if (r) out = out.split(r).join('');
+  });
+  return out.trim();
+}
 
 const pane = new Tweakpane.Pane();
 
 const fCommon = pane.addFolder({ title: '基本設定', expanded: false });
 fCommon.addInput(PARAMS, 'Depth', { step: 1, min: 0, max: 15, label: '表示する階層の深さ' });
 fCommon.addInput(PARAMS, 'Compact', { label: 'コンパクト表示（文字＋線のみ）' });
+fCommon.addInput(PARAMS, 'ShowTitle', { label: '日本語タイトルを表示' });
+fCommon.addInput(PARAMS, 'ShowDirectory', { label: 'ディレクトリを表示' });
+fCommon.addInput(PARAMS, 'ShowBadge', { label: '下階層ページ数バッジを表示' });
+
+// 日本語ラベルから削除する文字列(例: 「｜Biz.maxell - マクセル」)
+const fRemove = pane.addFolder({ title: '日本語ラベルから削除する文字列', expanded: false });
+fRemove.addInput(PARAMS, 'Remove1', { label: '削除文字列1' });
+fRemove.addInput(PARAMS, 'Remove2', { label: '削除文字列2' });
+fRemove.addInput(PARAMS, 'Remove3', { label: '削除文字列3' });
+fRemove.addButton({ title: '🔄 反映する' }).on('click', () => draw(jsonData));
 
 
 const fBC = pane.addFolder({ title: 'ボックス表示の設定', expanded: false });
-fBC.addInput(PARAMS, 'BoxWidth', { step: 1, min: 20, max: 300, label: 'ボックスの幅' });
+fBC.addInput(PARAMS, 'BoxWidth', { step: 1, min: 20, max: 600, label: 'ボックスの幅' });
 fBC.addInput(PARAMS, 'BoxHeight', { step: 1, min: 20, max: 300, label: 'ボックスの高さ' });
 fBC.addInput(PARAMS, 'HSpacing', { step: 1, min: 0, max: 100, label: 'ボックス間の余白' });
 fBC.addInput(PARAMS, 'Separation', { step: 0.1, min: 0.5, max: 3.0, label: '異なるグループ間の間隔' });
@@ -304,6 +345,8 @@ const EMBED_STYLES = `
   .link-bc { fill:none; stroke:#555; stroke-width:1px; }
   .node text    { font-size:11px; }
   .node-bc text { font-size:11px; }
+  .badge-bc text { font-size:10px; }
+  .badge-bc circle { fill:#ffffff; }
   text { font-family:'Hiragino Kaku Gothic Pro',Meiryo,Arial,sans-serif; }
 `;
 
@@ -337,33 +380,83 @@ function downloadSvg() {
 }
 
 // ============================================================
-// ボックス内テキスト描画 (省略 or 折り返し)
+// ボックス内テキスト描画 (2段: 日本語タイトル + ディレクトリ)
+// ShowTitle / ShowDirectory で各段の表示を切替。
+// 片方のみの場合は縦中央寄せ。折り返し or 省略に対応。
 // ============================================================
+const BOX_PAD_X = 8; // ボックス内テキストの左右パディング(px)
+const BOX_FONT_SIZE = 11;
+
+// 実際のピクセル幅を計測(全角/半角の混在を正しく扱う)
+let _measureCtx = null;
+function measureText(str, bold) {
+  if (!_measureCtx) _measureCtx = document.createElement('canvas').getContext('2d');
+  _measureCtx.font = `${bold ? '700 ' : ''}${BOX_FONT_SIZE}px 'Hiragino Kaku Gothic Pro',Meiryo,sans-serif`;
+  return _measureCtx.measureText(str).width;
+}
+
+function wrapSegment(text, bw, bold) {
+  if (!text) return [];
+  const avail = Math.max(1, bw - BOX_PAD_X * 2);
+
+  // 折り返しOFF: 幅に収まるよう末尾を…で省略
+  if (!PARAMS.WrapText) {
+    if (measureText(text, bold) <= avail) return [text];
+    let s = text;
+    while (s.length > 0 && measureText(s + '…', bold) > avail) s = s.slice(0, -1);
+    return [s + '…'];
+  }
+
+  // 折り返しON: 計測しながら幅に収まる位置で改行
+  const lines = [];
+  let cur = '';
+  for (const ch of text) {
+    if (cur && measureText(cur + ch, bold) > avail) {
+      lines.push(cur);
+      cur = ch;
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
 function applyBoxText(textSel, bw, bh) {
   textSel.each(function (d) {
     const el = d3.select(this);
     el.selectAll('tspan').remove();
-    const name = d.data.label || d.data.name;
+    el.text('').attr('y', 0).attr('dy', null);
 
-    if (!PARAMS.WrapText) {
-      const max = Math.floor(bw / 7.5);
-      el.text(name.length > max ? name.slice(0, max - 1) + '…' : name)
-        .attr('y', bh / 2).attr('dy', '0.35em');
-    } else {
-      el.text('').attr('y', 0).attr('dy', null);
-      const charsPerLine = Math.max(3, Math.floor((bw - 10) / 6.5));
-      const lines = [];
-      let rem = name;
-      while (rem.length > 0) {
-        lines.push(rem.slice(0, charsPerLine));
-        rem = rem.slice(charsPerLine);
-      }
-      const lineH = 13;
-      const startY = (bh - lines.length * lineH) / 2 + lineH * 0.75;
-      lines.forEach((line, i) => {
-        el.append('tspan').attr('x', bw / 2).attr('y', startY + i * lineH).text(line);
-      });
-    }
+    const cleanLabel = stripRemovals(d.data.label);
+    const title = (PARAMS.ShowTitle && cleanLabel) ? cleanLabel : '';
+    const dir = PARAMS.ShowDirectory ? (d.data.name || '') : '';
+
+    // 上段 = 日本語タイトル(通常), 下段 = ディレクトリ(太字)
+    const titleLines = title ? wrapSegment(title, bw, false) : [];
+    const dirLines = dir ? wrapSegment(dir, bw, true) : [];
+    if (titleLines.length === 0 && dirLines.length === 0) return;
+
+    const lineH = 13;
+    const GAP = 8; // タイトルとディレクトリの間の隙間(px)
+    const hasGap = titleLines.length > 0 && dirLines.length > 0;
+
+    // 各行に y オフセットを割り当て(タイトルの後にだけ GAP を加算)
+    const segments = [];
+    let offset = 0;
+    titleLines.forEach(t => { segments.push({ text: t, bold: false, y: offset }); offset += lineH; });
+    if (hasGap) offset += GAP;
+    dirLines.forEach(t => { segments.push({ text: t, bold: true, y: offset }); offset += lineH; });
+
+    const totalH = offset;
+    const startY = (bh - totalH) / 2 + lineH * 0.75;
+    segments.forEach(seg => {
+      el.append('tspan')
+        .attr('x', bw / 2)
+        .attr('y', startY + seg.y)
+        .attr('font-weight', seg.bold ? '700' : '400')
+        .text(seg.text);
+    });
   });
 }
 
@@ -383,6 +476,9 @@ function calcNodeBounds(nodes) {
 // ============================================================
 // 共通ヘルパー: ボックスノードを描画 (B/C 共通)
 // ============================================================
+// バッジの色(接続線 .link-bc と同じグレー)
+const BADGE_COLOR = '#555555';
+
 function renderBoxNodes(g, nodes, bw, bh, getPos) {
   const ng = g.selectAll('g.node-bc').data(nodes).enter()
     .append('g').attr('class', 'node-bc')
@@ -409,7 +505,36 @@ function renderBoxNodes(g, nodes, bw, bh, getPos) {
     bw, bh
   );
 
-  a.append('title').text(d => (d.data.label || d.data.name) + (d.data.url ? '\n' + d.data.url : ''));
+  a.append('title').text(d => (stripRemovals(d.data.label) || d.data.name) + (d.data.url ? '\n' + d.data.url : ''));
+
+  // バッジ: 下階層ページ数(全子孫数)。
+  // 縦並べ(B)=下辺中央 / 横並べ(C)=右辺中央 に配置。
+  // 配色は接続線と同じグレー、塗りは白。
+  if (PARAMS.ShowBadge) {
+    const badgePos = currentPattern === 'C'
+      ? `translate(${bw},${bh / 2})`
+      : `translate(${bw / 2},${bh})`;
+    const badge = ng.filter(d => (d.data.pageCount || 0) > 0)
+      .append('g')
+      .attr('class', 'badge-bc')
+      .attr('transform', badgePos);
+
+    const digits = d => String(d.data.pageCount).length;
+
+    badge.append('circle')
+      .attr('r', d => 10 + Math.max(0, digits(d) - 2) * 2.5)
+      .attr('fill', '#ffffff')
+      .attr('stroke', BADGE_COLOR)
+      .attr('stroke-width', 1);
+
+    badge.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '0.35em')
+      .attr('font-size', '10px')
+      .attr('font-family', "'Hiragino Kaku Gothic Pro',Meiryo,sans-serif")
+      .attr('fill', BADGE_COLOR)
+      .text(d => d.data.pageCount);
+  }
 }
 
 // ============================================================
@@ -458,7 +583,7 @@ function drawPatternA(data) {
       .attr('dy', '0.31em')
       .attr('x', d => (d.children || d._children) ? -6 : 6)
       .attr('text-anchor', d => (d.children || d._children) ? 'end' : 'start')
-      .text(d => d.data.label || d.data.name);
+      .text(d => stripRemovals(d.data.label) || d.data.name);
 
     const upd = enter.merge(node);
     upd.transition().duration(200).attr('transform', d => `translate(${d.y},${d.x})`);
