@@ -108,7 +108,7 @@ https://www.i-studio.co.jp/whyistudio/`;
 // State
 // ============================================================
 let jsonData = null;
-let currentPattern = 'B';
+let currentPattern = 'C';
 
 // ============================================================
 // ランダムロゴ: chapome 98% / kuropome 1% / shiropome 1%
@@ -127,6 +127,9 @@ function setRandomLogo() {
 // rows: PapaParse の results.data (string[][] 形式)
 // 1列目 = URL、2列目 = 表示ラベル(任意)
 // ============================================================
+// 末尾が拡張子(.html / .pdf など)ならファイル、それ以外はフォルダとみなす
+const FILE_EXT_RE = /\.[a-z0-9]{1,10}$/i;
+
 function csvToJson(rows) {
   const root = { name: 'TOP', children: [], url: null };
   let rootOrigin = '';
@@ -149,9 +152,15 @@ function csvToJson(rows) {
       let accPath = '';
       parts.forEach((seg, idx) => {
         accPath += '/' + seg;
+        const isFile = idx === parts.length - 1 && FILE_EXT_RE.test(seg);
         let child = cur.children.find(c => c.name === '/' + seg);
         if (!child) {
-          child = { name: '/' + seg, children: [], url: rootOrigin + accPath + '/' };
+          child = {
+            name: '/' + seg,
+            children: [],
+            url: rootOrigin + accPath + (isFile ? '' : '/'),
+            isFile,
+          };
           cur.children.push(child);
         }
         if (idx === parts.length - 1 && rawLabel) child.label = rawLabel;
@@ -163,22 +172,21 @@ function csvToJson(rows) {
     }
   });
 
-  computePageCounts(root);
+  computeFileCounts(root);
   return root;
 }
 
 // ============================================================
-// 各ノードに pageCount(=全子孫ノード数)を付与
-// Depth による枝刈りの前に生データツリーで数えるため、
-// 画面に表示されない深い階層のページも件数に含まれる。
+// 各ノードに fileCount(= 直下のファイル数)を付与
+// ・フォルダはカウントしない
+// ・配下の階層の中まではカウントしない(直下のみ)
+// Depth の枝刈りやファイル非表示より前に生データで数えるため、
+// ボックスを隠しても件数は保たれる。
 // ============================================================
-function computePageCounts(node) {
-  let count = 0;
-  (node.children || []).forEach(child => {
-    count += 1 + computePageCounts(child);
-  });
-  node.pageCount = count;
-  return count;
+function computeFileCounts(node) {
+  const children = node.children || [];
+  children.forEach(computeFileCounts);
+  node.fileCount = children.filter(c => c.isFile).length;
 }
 
 // ============================================================
@@ -280,7 +288,7 @@ const PARAMS = {
   BoxWidth: 200,
   BoxHeight: 80,
   HSpacing: 8,
-  VSpacing: 8,
+  VSpacing: 50,
   Separation: 1.2,
   WrapText: true,
   BaseColor: '#530100',
@@ -291,6 +299,9 @@ const PARAMS = {
   Remove1: '',
   Remove2: '',
   Remove3: '',
+  ShowFileBoxes: true,
+  AlignB: 'top',
+  AlignC: 'top',
 };
 
 // 日本語ラベルから指定文字列を削除(非破壊。描画時に適用)
@@ -303,6 +314,18 @@ function stripRemovals(str) {
   return out.trim();
 }
 
+// ファイル(.html / .pdf など)のノードをツリーから除外し、BOX自体を非表示にする。
+// fileCount は元データで算出済みのため、親のバッジ件数は隠しても保たれる。
+function pruneFileNodes(root) {
+  if (PARAMS.ShowFileBoxes) return;
+  root.each(d => {
+    if (d.children) {
+      d.children = d.children.filter(c => !c.data.isFile);
+      if (d.children.length === 0) d.children = null;
+    }
+  });
+}
+
 const pane = new Tweakpane.Pane();
 
 const fCommon = pane.addFolder({ title: '基本設定', expanded: false });
@@ -310,7 +333,8 @@ fCommon.addInput(PARAMS, 'Depth', { step: 1, min: 0, max: 15, label: '表示す�
 fCommon.addInput(PARAMS, 'Compact', { label: 'コンパクト表示（文字＋線のみ）' });
 fCommon.addInput(PARAMS, 'ShowTitle', { label: '日本語タイトルを表示' });
 fCommon.addInput(PARAMS, 'ShowDirectory', { label: 'ディレクトリを表示' });
-fCommon.addInput(PARAMS, 'ShowBadge', { label: '下階層ページ数バッジを表示' });
+fCommon.addInput(PARAMS, 'ShowFileBoxes', { label: 'ファイル名のボックスを表示' });
+fCommon.addInput(PARAMS, 'ShowBadge', { label: '直下のファイル数バッジを表示' });
 
 // 日本語ラベルから削除する文字列(例: 「｜Biz.maxell - マクセル」)
 const fRemove = pane.addFolder({ title: '日本語ラベルから削除する文字列', expanded: false });
@@ -327,6 +351,14 @@ fBC.addInput(PARAMS, 'HSpacing', { step: 1, min: 0, max: 100, label: 'ボック�
 fBC.addInput(PARAMS, 'Separation', { step: 0.1, min: 0.5, max: 3.0, label: '異なるグループ間の間隔' });
 fBC.addInput(PARAMS, 'VSpacing', { step: 1, min: 20, max: 200, label: '階層間の縦の間隔' });
 fBC.addInput(PARAMS, 'WrapText', { label: 'テキストを折り返す' });
+fBC.addInput(PARAMS, 'AlignB', {
+  label: '縦並べの揃え',
+  options: { '上揃え（左寄せ）': 'top', '真ん中揃え': 'center' },
+});
+fBC.addInput(PARAMS, 'AlignC', {
+  label: '横並べの揃え',
+  options: { '上揃え': 'top', '真ん中揃え': 'center' },
+});
 fBC.addInput(PARAMS, 'BaseColor', { label: 'ボックスの色' });
 
 pane.on('change', () => {
@@ -422,34 +454,94 @@ function wrapSegment(text, bw, bold) {
   return lines;
 }
 
-function applyBoxText(textSel, bw, bh) {
+// ボックス内テキストのレイアウト定数
+const LINE_H = 13;              // 1行の高さ
+const SEG_GAP = 8;             // タイトル段とディレクトリ段の隙間
+const STD_CONTENT_H = 2 * LINE_H + SEG_GAP; // 標準(タイトル1行+ディレクトリ1行)の内容高さ
+const MIN_BOX_H = 28;          // ボックスの最小高さ
+
+// ノードの表示行(タイトル/ディレクトリ)を計算
+function computeSegments(d, bw) {
+  const cleanLabel = stripRemovals(d.data.label);
+  const title = (PARAMS.ShowTitle && cleanLabel) ? cleanLabel : '';
+  const dir = PARAMS.ShowDirectory ? (d.data.name || '') : '';
+  return {
+    titleLines: title ? wrapSegment(title, bw, false) : [],
+    dirLines: dir ? wrapSegment(dir, bw, true) : [],
+  };
+}
+
+function contentHeight(segs) {
+  const n = segs.titleLines.length + segs.dirLines.length;
+  const hasGap = segs.titleLines.length > 0 && segs.dirLines.length > 0;
+  return n * LINE_H + (hasGap ? SEG_GAP : 0);
+}
+
+// 全ノードに「その生成で必要な最大高さ」を絶対pxで一律に割り当てる。
+// 標準(タイトル+ディレクトリ各1行)= PARAMS.BoxHeight を基準に、
+// 内容が少なければ全体が縮み、折り返しで増えれば全体が広がる。
+// 高さを一律にすることで、ボックス上辺が揃い接続線のずれを防ぐ。
+// 返り値 = 全ノード共通の高さ(レイアウトの間隔算出にも使用)。
+function assignBoxHeights(nodes, bw) {
+  let maxH = MIN_BOX_H;
+  nodes.forEach(d => {
+    const segs = computeSegments(d, bw);
+    d._segs = segs;
+    const h = Math.max(MIN_BOX_H, PARAMS.BoxHeight + (contentHeight(segs) - STD_CONTENT_H));
+    if (h > maxH) maxH = h;
+  });
+  // 生成時に全ボックスを同一の絶対px高さへ統一(線ずれ防止)
+  nodes.forEach(d => { d.boxH = maxH; });
+  return maxH;
+}
+
+// ============================================================
+// 上揃え(先頭揃え)レイアウト
+// ============================================================
+// breadth軸(d.x)を再計算する。葉に順番にスロットを割り当て、
+// 親は「先頭の子」と同じ位置に置く(＝サブツリーの先頭に揃う)。
+//
+// d3.tree の中央揃え結果を後から動かすと、レイアウトが保証していた
+// 間隔が崩れてノードが重なるため、breadth軸ごと組み直している。
+// 同じ深さの2ノードは必ず異なる葉を先頭に持つので、間隔は最低でも
+// 1スロット(=ボックスサイズ+余白)空き、重なりが原理的に起きない。
+function applyStartAlign(root, slot) {
+  let cursor = 0;
+  let prevLeaf = null;
+  (function walk(d) {
+    if (!d.children || d.children.length === 0) {
+      // 親が変わる境目では Separation ぶん広くとる(d3.tree と同じ考え方)
+      if (prevLeaf) cursor += (d.parent === prevLeaf.parent ? 1 : PARAMS.Separation);
+      d._pos = cursor * slot;
+      prevLeaf = d;
+      return;
+    }
+    d.children.forEach(walk);
+    d._pos = d.children[0]._pos;
+  })(root);
+  root.each(d => { d.x = d._pos; });
+}
+
+function applyBoxText(textSel, bw) {
   textSel.each(function (d) {
     const el = d3.select(this);
     el.selectAll('tspan').remove();
     el.text('').attr('y', 0).attr('dy', null);
 
-    const cleanLabel = stripRemovals(d.data.label);
-    const title = (PARAMS.ShowTitle && cleanLabel) ? cleanLabel : '';
-    const dir = PARAMS.ShowDirectory ? (d.data.name || '') : '';
-
-    // 上段 = 日本語タイトル(通常), 下段 = ディレクトリ(太字)
-    const titleLines = title ? wrapSegment(title, bw, false) : [];
-    const dirLines = dir ? wrapSegment(dir, bw, true) : [];
+    const { titleLines, dirLines } = d._segs || computeSegments(d, bw);
     if (titleLines.length === 0 && dirLines.length === 0) return;
 
-    const lineH = 13;
-    const GAP = 8; // タイトルとディレクトリの間の隙間(px)
     const hasGap = titleLines.length > 0 && dirLines.length > 0;
 
     // 各行に y オフセットを割り当て(タイトルの後にだけ GAP を加算)
     const segments = [];
     let offset = 0;
-    titleLines.forEach(t => { segments.push({ text: t, bold: false, y: offset }); offset += lineH; });
-    if (hasGap) offset += GAP;
-    dirLines.forEach(t => { segments.push({ text: t, bold: true, y: offset }); offset += lineH; });
+    titleLines.forEach(t => { segments.push({ text: t, bold: false, y: offset }); offset += LINE_H; });
+    if (hasGap) offset += SEG_GAP;
+    dirLines.forEach(t => { segments.push({ text: t, bold: true, y: offset }); offset += LINE_H; });
 
     const totalH = offset;
-    const startY = (bh - totalH) / 2 + lineH * 0.75;
+    const startY = ((d.boxH || PARAMS.BoxHeight) - totalH) / 2 + LINE_H * 0.75;
     segments.forEach(seg => {
       el.append('tspan')
         .attr('x', bw / 2)
@@ -479,7 +571,8 @@ function calcNodeBounds(nodes) {
 // バッジの色(接続線 .link-bc と同じグレー)
 const BADGE_COLOR = '#555555';
 
-function renderBoxNodes(g, nodes, bw, bh, getPos) {
+// 各ノードは内容に応じた高さ d.boxH を持つ(assignBoxHeights で事前計算)。
+function renderBoxNodes(g, nodes, bw, getPos) {
   const ng = g.selectAll('g.node-bc').data(nodes).enter()
     .append('g').attr('class', 'node-bc')
     .attr('transform', d => `translate(${getPos(d).x},${getPos(d).y})`);
@@ -490,7 +583,7 @@ function renderBoxNodes(g, nodes, bw, bh, getPos) {
     .style('cursor', 'pointer');
 
   a.append('rect')
-    .attr('width', bw).attr('height', bh)
+    .attr('width', bw).attr('height', d => d.boxH)
     .attr('fill', d => nodeColor(d.depth).fill)
     .attr('stroke', d => nodeColor(d.depth).stroke)
     .attr('stroke-width', 1);
@@ -502,7 +595,7 @@ function renderBoxNodes(g, nodes, bw, bh, getPos) {
       .attr('fill', d => nodeColor(d.depth).text)
       .attr('font-size', '11px')
       .attr('font-family', "'Hiragino Kaku Gothic Pro',Meiryo,sans-serif"),
-    bw, bh
+    bw
   );
 
   a.append('title').text(d => (stripRemovals(d.data.label) || d.data.name) + (d.data.url ? '\n' + d.data.url : ''));
@@ -511,15 +604,15 @@ function renderBoxNodes(g, nodes, bw, bh, getPos) {
   // 縦並べ(B)=下辺中央 / 横並べ(C)=右辺中央 に配置。
   // 配色は接続線と同じグレー、塗りは白。
   if (PARAMS.ShowBadge) {
-    const badgePos = currentPattern === 'C'
-      ? `translate(${bw},${bh / 2})`
-      : `translate(${bw / 2},${bh})`;
-    const badge = ng.filter(d => (d.data.pageCount || 0) > 0)
+    const badgePos = d => currentPattern === 'C'
+      ? `translate(${bw},${d.boxH / 2})`
+      : `translate(${bw / 2},${d.boxH})`;
+    const badge = ng.filter(d => (d.data.fileCount || 0) > 0)
       .append('g')
       .attr('class', 'badge-bc')
       .attr('transform', badgePos);
 
-    const digits = d => String(d.data.pageCount).length;
+    const digits = d => String(d.data.fileCount).length;
 
     badge.append('circle')
       .attr('r', d => 10 + Math.max(0, digits(d) - 2) * 2.5)
@@ -533,7 +626,7 @@ function renderBoxNodes(g, nodes, bw, bh, getPos) {
       .attr('font-size', '10px')
       .attr('font-family', "'Hiragino Kaku Gothic Pro',Meiryo,sans-serif")
       .attr('fill', BADGE_COLOR)
-      .text(d => d.data.pageCount);
+      .text(d => d.data.fileCount);
   }
 }
 
@@ -545,6 +638,7 @@ function drawPatternA(data) {
   const depth = PARAMS.Depth;
 
   const root = d3.hierarchy(data);
+  pruneFileNodes(root);
   const dx = PARAMS.Height;
   const dy = width / (root.height + 1);
   d3.tree().nodeSize([dx, dy])(root);
@@ -610,37 +704,45 @@ function drawPatternA(data) {
 // Pattern B : 縦型ツリー (ボックス + 直角カギ線)
 // ============================================================
 function drawPatternB(data) {
-  const { Depth: depth, BoxWidth: bw, BoxHeight: bh, HSpacing: hsp, VSpacing: vsp } = PARAMS;
+  const { Depth: depth, BoxWidth: bw, HSpacing: hsp, VSpacing: vsp } = PARAMS;
 
   const root = d3.hierarchy(data);
+  pruneFileNodes(root);
   root.each(d => { if (d.depth >= depth && d.children) d.children = null; });
 
+  // 各ノードの高さを内容から算出。階層間隔は最大高さを基準に確保。
+  const maxH = assignBoxHeights(root.descendants(), bw);
+
   d3.tree()
-    .nodeSize([bw + hsp, bh + vsp])
+    .nodeSize([bw + hsp, maxH + vsp])
     .separation((a, b) => a.parent === b.parent ? 1 : PARAMS.Separation)
     (root);
+
+  // 上揃え: 親を先頭の子と同じ位置(左端)に合わせ、左から右下へ伸びるツリーにする。
+  // 真ん中揃えは d3.tree の既定(親を子の中央に配置)のまま。
+  if (PARAMS.AlignB === 'top') applyStartAlign(root, bw + hsp);
 
   const nodes = root.descendants();
   const links = root.links();
   const { xMin, xMax, yMax } = calcNodeBounds(nodes);
 
-  const pad = { t: bh * 2, r: bw, b: bh * 2, l: bw };
+  const pad = { t: maxH * 2, r: bw, b: maxH * 2, l: bw };
   const svg = d3.select('#svg-container').append('svg')
     .attr('width', xMax - xMin + bw + pad.l + pad.r)
-    .attr('height', yMax + bh + pad.t + pad.b)
+    .attr('height', yMax + maxH + pad.t + pad.b)
     .attr('xmlns', 'http://www.w3.org/2000/svg');
   const g = svg.append('g').attr('transform', `translate(${-xMin + pad.l},${pad.t})`);
 
   g.selectAll('path.link-bc').data(links).enter().insert('path', ':first-child')
     .attr('class', 'link-bc')
     .attr('d', d => {
-      const sx = d.source.x, sy = d.source.y + bh / 2;
-      const tx = d.target.x, ty = d.target.y - bh / 2;
+      const sx = d.source.x, sy = d.source.y + d.source.boxH / 2;
+      const tx = d.target.x, ty = d.target.y - d.target.boxH / 2;
       const my = (sy + ty) / 2;
       return `M ${sx},${sy} L ${sx},${my} L ${tx},${my} L ${tx},${ty}`;
     });
 
-  renderBoxNodes(g, nodes, bw, bh, d => ({ x: d.x - bw / 2, y: d.y - bh / 2 }));
+  renderBoxNodes(g, nodes, bw, d => ({ x: d.x - bw / 2, y: d.y - d.boxH / 2 }));
 
   // ルートノード(x=0)が画面中央に来るようスクロール位置を設定
   const container = document.getElementById('svg-container');
@@ -652,26 +754,34 @@ function drawPatternB(data) {
 // Pattern C : 横型ツリー (ボックス + 直角カギ線)
 // ============================================================
 function drawPatternC(data) {
-  const { Depth: depth, BoxWidth: bw, BoxHeight: bh, HSpacing: hsp, VSpacing: vsp } = PARAMS;
+  const { Depth: depth, BoxWidth: bw, HSpacing: hsp, VSpacing: vsp } = PARAMS;
 
   const root = d3.hierarchy(data);
+  pruneFileNodes(root);
   root.each(d => { if (d.depth >= depth && d.children) d.children = null; });
+
+  // 各ノードの高さを内容から算出。縦の間隔は最大高さを基準に確保。
+  const maxH = assignBoxHeights(root.descendants(), bw);
 
   // breadth方向(x) = 縦間隔, depth方向(y) = 横間隔
   d3.tree()
-    .nodeSize([bh + hsp, bw + vsp])
+    .nodeSize([maxH + hsp, bw + vsp])
     .separation((a, b) => a.parent === b.parent ? 1 : PARAMS.Separation)
     (root);
+
+  // 上揃え: 各ノードを子ブロックの先頭(最上段)に合わせる(全階層に適用)
+  // 真ん中揃えは d3.tree の既定(親を子の中央に配置)のまま。
+  if (PARAMS.AlignC === 'top') applyStartAlign(root, maxH + hsp);
 
   const nodes = root.descendants();
   const links = root.links();
   const { xMin, xMax, yMax } = calcNodeBounds(nodes);
 
   // 横型レイアウト: d.y → 水平, d.x → 垂直
-  const pad = { t: bh, r: bw * 2, b: bh, l: bw };
+  const pad = { t: maxH, r: bw * 2, b: maxH, l: bw };
   const svg = d3.select('#svg-container').append('svg')
     .attr('width', yMax + bw + pad.l + pad.r)
-    .attr('height', xMax - xMin + bh + pad.t + pad.b)
+    .attr('height', xMax - xMin + maxH + pad.t + pad.b)
     .attr('xmlns', 'http://www.w3.org/2000/svg');
   const g = svg.append('g').attr('transform', `translate(${pad.l},${-xMin + pad.t})`);
 
@@ -684,7 +794,7 @@ function drawPatternC(data) {
       return `M ${sx},${sy} L ${mx},${sy} L ${mx},${ty} L ${tx},${ty}`;
     });
 
-  renderBoxNodes(g, nodes, bw, bh, d => ({ x: d.y - bw / 2, y: d.x - bh / 2 }));
+  renderBoxNodes(g, nodes, bw, d => ({ x: d.y - bw / 2, y: d.x - d.boxH / 2 }));
 }
 
 // ============================================================
