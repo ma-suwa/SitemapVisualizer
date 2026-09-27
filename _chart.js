@@ -1103,54 +1103,114 @@ function parseBuffer(buf, encoding) {
 
 const cellText = (row, c) => (row && row[c] != null ? String(row[c]).trim() : '');
 
-// 列の役割の初期値を提案する(ユーザーが画面で直す前提の簡易判定)
+// 数字だけの値(文字数・スコア・バイト数・割合など)
+const NUMERIC_RE = /^[-+]?[\d,]*\.?\d+%?$/;
+// タイトル列らしい見出し名。前にあるものほど優先する
+const TITLE_HEADER_RES = [/title|タイトル/i, /ページ名|名称/, /name/i];
+// 階層列とみなすのに必要な「並んだ候補列のうち1列にだけ値がある行」の割合
+const LEVEL_SINGLE_RATIO = 0.8;
+// タイトル・階層の候補に必要な「値の種類 ÷ 値の数」。1行が1ページなので、ページ名の列は
+// 一覧ページなどで同じタイトルが続いても種類が多い(実データで0.4前後)。
+// 数種類の値がくり返される分類・ステータスの列(0.1未満)を除く
+const TITLE_UNIQUE_RATIO = 0.2;
+
+// 列の役割の初期値を提案する(ユーザーが画面で直す前提の簡易判定)。
+// どの表にも効く一般的な判定だけを使い、特定のツールや形式ごとの特別対応はしない。
+//  1. URL列を決め、そこから開始行(見出し行の有無)を決める
+//  2. 開始行より後ろのデータだけで、列ごとの埋まり具合などを集計する
+//  3. 値が1つもない列・数字だけの列・URLの列・同じ値がくり返される列(分類やステータス)は、
+//     タイトル(階層)の候補にしない
+//  4. 空欄まじりの候補列が2列以上並び、大半の行で「どれか1列にだけ値がある」なら階層列とみなす
+//  5. 階層列がなければ、見出し名(title・タイトル・ページ名など)からタイトル列を1つ選ぶ。
+//     見出し名で見つからなければ、ほぼ埋まっている列のうち平均文字数が最も長い列を選ぶ
 function suggestRoles(rows) {
   const nCols = rows.reduce((m, r) => Math.max(m, r.length), 0);
-  // 深い階層の列は表の後半にしか値がないこともあるため、全行で集計する
-  const stats = Array.from({ length: nCols }, (_, c) => {
-    const vals = rows.map(r => cellText(r, c)).filter(Boolean);
-    return {
-      fill: vals.length / (rows.length || 1),
-      urlRatio: vals.filter(v => URLISH_RE.test(v)).length / (vals.length || 1),
-      avgLen: vals.reduce((s, v) => s + v.length, 0) / (vals.length || 1),
-    };
-  });
   const roles = Array(nCols).fill('none');
 
-  // URL: URLらしい値が半分以上ある列のうち最もURLらしい列
-  let urlCol = -1;
-  stats.forEach((s, c) => {
-    if (s.urlRatio >= 0.5 && (urlCol < 0 || s.urlRatio > stats[urlCol].urlRatio)) urlCol = c;
-  });
+  // URL: URLらしい値が半分以上ある列のうち最もURLらしい列。
+  // 見出し1行ぶんでは割合がほとんど変わらないので、ここだけは全行で判定する
+  let urlCol = -1, bestRatio = 0;
+  for (let c = 0; c < nCols; c++) {
+    const vals = rows.map(r => cellText(r, c)).filter(Boolean);
+    const ratio = vals.filter(v => URLISH_RE.test(v)).length / (vals.length || 1);
+    if (ratio >= 0.5 && ratio > bestRatio) { urlCol = c; bestRatio = ratio; }
+  }
   if (urlCol >= 0) roles[urlCol] = 'url';
 
-  // 階層: 空欄まじりの文字列の列が2列以上並んでいれば、それらすべてをタイトルにする
-  const isLevelLike = c => c !== urlCol && stats[c].fill > 0 && stats[c].fill < 0.9 && stats[c].urlRatio < 0.5;
-  let best = [], run = [];
+  // 見出し行を除いたデータだけで集計する(見出しだけが入った列を「値のある列」と数えないため)。
+  // 深い階層の列は表の後半にしか値がないこともあるため、データは全行を使う
+  const start = detectStart(rows, urlCol);
+  const header = start > 1 ? rows[start - 2] : null;
+  const data = rows.slice(start - 1);
+  const stats = Array.from({ length: nCols }, (_, c) => {
+    const vals = data.map(r => cellText(r, c)).filter(Boolean);
+    return {
+      fill: vals.length / (data.length || 1),
+      urlRatio: vals.filter(v => URLISH_RE.test(v)).length / (vals.length || 1),
+      numRatio: vals.filter(v => NUMERIC_RE.test(v)).length / (vals.length || 1),
+      avgLen: vals.reduce((sum, v) => sum + v.length, 0) / (vals.length || 1),
+      uniqueRatio: new Set(vals).size / (vals.length || 1),
+    };
+  });
+  const isTextCol = c => c !== urlCol && stats[c].fill > 0 && stats[c].urlRatio < 0.5
+    && stats[c].numRatio < 0.9 && stats[c].uniqueRatio >= TITLE_UNIQUE_RATIO;
+
+  // 階層: 空欄まじりの文字列の列が並んだまとまり(ラン)を探す
+  const runs = [];
+  let run = [];
   for (let c = 0; c <= nCols; c++) {
-    if (c < nCols && isLevelLike(c)) { run.push(c); continue; }
-    if (run.length > best.length) best = run;
+    if (c < nCols && isTextCol(c) && stats[c].fill < 0.9) { run.push(c); continue; }
+    if (run.length >= 2) runs.push(run);
     run = [];
   }
-  if (best.length >= 2) {
-    best.forEach(c => { roles[c] = 'label'; });
-  } else {
-    // タイトル: ほぼ埋まっている文字列の列のうち平均文字数が最も長い列(ID列などを避ける)
-    let labelCol = -1;
-    stats.forEach((s, c) => {
-      if (c === urlCol || s.fill < 0.5 || s.urlRatio >= 0.5) return;
-      if (labelCol < 0 || s.avgLen > stats[labelCol].avgLen) labelCol = c;
+  // 値のある行のうち、ランの中の1列にだけ値が入っている行が大半なら階層列。
+  // 同じ行に値が入る列の組み合わせ(例: ステータスとページ名)は階層列にしない
+  const isHierarchy = cols => {
+    let filledRows = 0, singleRows = 0;
+    data.forEach(r => {
+      const n = cols.filter(c => cellText(r, c)).length;
+      if (n > 0) filledRows++;
+      if (n === 1) singleRows++;
     });
-    if (labelCol >= 0) roles[labelCol] = 'label';
+    return filledRows > 0 && singleRows / filledRows >= LEVEL_SINGLE_RATIO;
+  };
+  const levelRun = runs.filter(isHierarchy).sort((a, b) => b.length - a.length)[0];
+  if (levelRun) {
+    levelRun.forEach(c => { roles[c] = 'label'; });
+    return roles;
   }
+
+  // タイトル(1列): 見出し名で探す。同じ優先度の候補が複数あれば、値が多く入っている列
+  let labelCol = -1;
+  if (header) {
+    for (const re of TITLE_HEADER_RES) {
+      const cands = [];
+      for (let c = 0; c < nCols; c++) if (isTextCol(c) && re.test(cellText(header, c))) cands.push(c);
+      if (cands.length) {
+        labelCol = cands.reduce((a, b) => (stats[b].fill > stats[a].fill ? b : a));
+        break;
+      }
+    }
+  }
+  // 見出し名で見つからなければ、ほぼ埋まっている列のうち平均文字数が最も長い列(ID列などを避ける)
+  if (labelCol < 0) {
+    for (let c = 0; c < nCols; c++) {
+      if (!isTextCol(c) || stats[c].fill < 0.5) continue;
+      if (labelCol < 0 || stats[c].avgLen > stats[labelCol].avgLen) labelCol = c;
+    }
+  }
+  if (labelCol >= 0) roles[labelCol] = 'label';
   return roles;
 }
 
 // 1行目のURL列がURLでなく2行目がURLなら、1行目は見出しとみなす
-function suggestStart(rows, roles) {
-  const urlCol = roles.indexOf('url');
+function detectStart(rows, urlCol) {
   if (urlCol < 0 || rows.length < 2) return 1;
   return !normalizeUrl(cellText(rows[0], urlCol)) && normalizeUrl(cellText(rows[1], urlCol)) ? 2 : 1;
+}
+
+function suggestStart(rows, roles) {
+  return detectStart(rows, roles.indexOf('url'));
 }
 
 function colName(i) {
