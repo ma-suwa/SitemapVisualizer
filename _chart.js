@@ -1,108 +1,53 @@
 // ============================================================
 // Default CSV (inlined to avoid file:// CORS restrictions)
+// 初期表示用のダミーのコーポレートサイト。example.co.jp は架空のドメイン。
+// 列: URL / ページタイトル / ページID(タグ) / CMS(タグ)
 // ============================================================
-const DEFAULT_CSV = `https://www.i-studio.co.jp/
-https://www.i-studio.co.jp/assets/pdf/privacy/personal_information_disclosure_invoice.pdf
-https://www.i-studio.co.jp/career/
-https://www.i-studio.co.jp/career/color-of-ist/
-https://www.i-studio.co.jp/career/iststats/
-https://www.i-studio.co.jp/career/recruit-account/
-https://www.i-studio.co.jp/career/recruit-experienced/
-https://www.i-studio.co.jp/career/special2024/
-https://www.i-studio.co.jp/career/training/
-https://www.i-studio.co.jp/career/welfare/
-https://www.i-studio.co.jp/casestudy/
-https://www.i-studio.co.jp/casestudy/asahibeer-superdry-namajokkikan/
-https://www.i-studio.co.jp/casestudy/hakuhodo-sifm/
-https://www.i-studio.co.jp/casestudy/hytek-thermoselfie/
-https://www.i-studio.co.jp/casestudy/jra-fun-portalsite/
-https://www.i-studio.co.jp/casestudy/jra-hot-holidays-online/
-https://www.i-studio.co.jp/casestudy/kovax-renocotocobaco/
-https://www.i-studio.co.jp/casestudy/leed-golgo13-200/
-https://www.i-studio.co.jp/casestudy/lifull-ai10000/
-https://www.i-studio.co.jp/casestudy/mercedes-benz/
-https://www.i-studio.co.jp/casestudy/mitsuihome/
-https://www.i-studio.co.jp/casestudy/mufg-saiyo/
-https://www.i-studio.co.jp/casestudy/osaka-metro-osakamania/
-https://www.i-studio.co.jp/casestudy/sevenbank-brand/
-https://www.i-studio.co.jp/casestudy/shibuya-portal/
-https://www.i-studio.co.jp/casestudy/shueisha-shonenjump-jpmission2020/
-https://www.i-studio.co.jp/casestudy/sti-renewal/
-https://www.i-studio.co.jp/casestudy/suntory-iyemon-tokucha/
-https://www.i-studio.co.jp/casestudy/unicharm-nobagforme-video-creator/
-https://www.i-studio.co.jp/casestudy/zorori-castle/
-https://www.i-studio.co.jp/company/
-https://www.i-studio.co.jp/company/company-overview/
-https://www.i-studio.co.jp/company/culture/
-https://www.i-studio.co.jp/company/groupcompanies/
-https://www.i-studio.co.jp/company/sustainability/
-https://www.i-studio.co.jp/company/vision/
-https://www.i-studio.co.jp/contact/
-https://www.i-studio.co.jp/handling-of-privacy/
-https://www.i-studio.co.jp/news/
-https://www.i-studio.co.jp/news/release/
-https://www.i-studio.co.jp/news/release/20231127-ownedo/
-https://www.i-studio.co.jp/news/release/2024-3-27/
-https://www.i-studio.co.jp/news/release/20240216-ist-infusion/
-https://www.i-studio.co.jp/news/release/20240425-ownedo/
-https://www.i-studio.co.jp/news/release/20240520-selfie/
-https://www.i-studio.co.jp/news/seminar-event/
-https://www.i-studio.co.jp/news/seminar-event/20231201-dx-webinar52/
-https://www.i-studio.co.jp/news/seminar-event/20231212-dx-webinar53/
-https://www.i-studio.co.jp/news/seminar-event/20231227-dx-webinar54/
-https://www.i-studio.co.jp/news/seminar-event/20240202-jsc2024/
-https://www.i-studio.co.jp/news/seminar-event/20240523-dx-webinar55/
-https://www.i-studio.co.jp/news/topics/
-https://www.i-studio.co.jp/news/topics/20231110-acc-award/
-https://www.i-studio.co.jp/news/topics/20240115-yell-selfie/
-https://www.i-studio.co.jp/news/topics/20240401-employer-actionplan/
-https://www.i-studio.co.jp/news/topics/20240524-webby-awards/
-https://www.i-studio.co.jp/news/topics/20240725-hcd-net/
-https://www.i-studio.co.jp/partner-hotline/
-https://www.i-studio.co.jp/privacy-policy/
-https://www.i-studio.co.jp/recruit_new/
-https://www.i-studio.co.jp/recruit_new/culture/
-https://www.i-studio.co.jp/recruit_new/person/1/
-https://www.i-studio.co.jp/recruit_new/person/2/
-https://www.i-studio.co.jp/recruit_new/person/3/
-https://www.i-studio.co.jp/recruit_new/project/1/
-https://www.i-studio.co.jp/recruit_new/project/2/
-https://www.i-studio.co.jp/recruit_new/project/3/
-https://www.i-studio.co.jp/recruit_new/project/4/
-https://www.i-studio.co.jp/recruit_new/project/5/
-https://www.i-studio.co.jp/recruit_new/project/6/
-https://www.i-studio.co.jp/recruit_new/project/7/
-https://www.i-studio.co.jp/recruit_new/recruit/
-https://www.i-studio.co.jp/recruit_new/seminar/
-https://www.i-studio.co.jp/sitemap/
-https://www.i-studio.co.jp/webaccessibility/
-https://www.i-studio.co.jp/whale/
-https://www.i-studio.co.jp/whale/creative1/
-https://www.i-studio.co.jp/whale/creative2-1/
-https://www.i-studio.co.jp/whale/creative2-2/
-https://www.i-studio.co.jp/whale/creative2-3/
-https://www.i-studio.co.jp/whale/creative3-1/
-https://www.i-studio.co.jp/whale/creative3-2/
-https://www.i-studio.co.jp/whale/creative4/
-https://www.i-studio.co.jp/whale/creative5/
-https://www.i-studio.co.jp/whale/culture1/
-https://www.i-studio.co.jp/whale/culture2/
-https://www.i-studio.co.jp/whale/culture3/
-https://www.i-studio.co.jp/whale/culture4/
-https://www.i-studio.co.jp/whale/culture5/
-https://www.i-studio.co.jp/whale/knowledge-knowhow1/
-https://www.i-studio.co.jp/whale/knowledge-knowhow2/
-https://www.i-studio.co.jp/whale/knowledge-knowhow3/
-https://www.i-studio.co.jp/whale/knowledge-knowhow4/
-https://www.i-studio.co.jp/whale/knowledge-knowhow5/
-https://www.i-studio.co.jp/whale/people1/
-https://www.i-studio.co.jp/whale/people2/
-https://www.i-studio.co.jp/whale/people3/
-https://www.i-studio.co.jp/whale/people4/
-https://www.i-studio.co.jp/whale/people5/
-https://www.i-studio.co.jp/whale/people6/
-https://www.i-studio.co.jp/whatwedo/
-https://www.i-studio.co.jp/whyistudio/`;
+const DEFAULT_CSV = `URL,ページタイトル,ページID,CMS
+https://www.example.co.jp/,トップ,P-001,WordPress
+https://www.example.co.jp/company/,企業情報,P-002,WordPress
+https://www.example.co.jp/company/message/,トップメッセージ,P-003,WordPress
+https://www.example.co.jp/company/philosophy/,企業理念,P-004,WordPress
+https://www.example.co.jp/company/profile/,会社概要,P-005,WordPress
+https://www.example.co.jp/company/history/,沿革,P-006,WordPress
+https://www.example.co.jp/company/officers/,役員一覧,P-007,WordPress
+https://www.example.co.jp/company/office/,拠点一覧,P-008,WordPress
+https://www.example.co.jp/company/office/tokyo/,東京本社,P-009,WordPress
+https://www.example.co.jp/company/office/osaka/,大阪支社,P-010,WordPress
+https://www.example.co.jp/company/office/fukuoka/,福岡営業所,P-011,WordPress
+https://www.example.co.jp/business/,事業紹介,P-012,WordPress
+https://www.example.co.jp/business/solution/,ソリューション事業,P-013,WordPress
+https://www.example.co.jp/business/manufacturing/,製造事業,P-014,WordPress
+https://www.example.co.jp/business/global/,海外事業,P-015,WordPress
+https://www.example.co.jp/products/,製品・サービス,P-016,WordPress
+https://www.example.co.jp/products/cloud/,クラウドサービス,P-017,WordPress
+https://www.example.co.jp/products/device/,産業用デバイス,P-018,WordPress
+https://www.example.co.jp/products/catalog.pdf,総合カタログ,P-019,PDF
+https://www.example.co.jp/sustainability/,サステナビリティ,P-020,WordPress
+https://www.example.co.jp/sustainability/environment/,環境への取り組み,P-021,WordPress
+https://www.example.co.jp/sustainability/social/,社会への取り組み,P-022,WordPress
+https://www.example.co.jp/sustainability/governance/,ガバナンス,P-023,WordPress
+https://www.example.co.jp/sustainability/report2026.pdf,統合報告書2026,P-024,PDF
+https://www.example.co.jp/ir/,株主・投資家の皆さまへ,P-025,WordPress
+https://www.example.co.jp/ir/news/,IRニュース,P-026,WordPress
+https://www.example.co.jp/ir/library/,IRライブラリ,P-027,WordPress
+https://www.example.co.jp/ir/library/tanshin_2026q1.pdf,2026年度 第1四半期 決算短信,P-028,PDF
+https://www.example.co.jp/ir/stock/,株式情報,P-029,WordPress
+https://www.example.co.jp/ir/meeting/,株主総会,P-030,WordPress
+https://www.example.co.jp/news/,ニュース,P-031,WordPress
+https://www.example.co.jp/news/2026/,2026年のニュース,P-032,WordPress
+https://www.example.co.jp/news/2026/0901.html,新サービス提供開始のお知らせ,P-033,WordPress
+https://www.example.co.jp/news/2026/0715.html,大阪支社移転のお知らせ,P-034,WordPress
+https://www.example.co.jp/news/2026/0401.html,組織変更のお知らせ,P-035,WordPress
+https://www.example.co.jp/recruit/,採用情報,P-036,外部サービス
+https://www.example.co.jp/recruit/new-graduate/,新卒採用,P-037,外部サービス
+https://www.example.co.jp/recruit/career/,キャリア採用,P-038,外部サービス
+https://www.example.co.jp/recruit/interview/,社員インタビュー,P-039,外部サービス
+https://www.example.co.jp/contact/,お問い合わせ,P-040,フォームツール
+https://www.example.co.jp/contact/faq/,よくあるご質問,P-041,WordPress
+https://www.example.co.jp/privacy/,プライバシーポリシー,P-042,WordPress
+https://www.example.co.jp/sitemap/,サイトマップ,P-043,WordPress
+https://www.example.co.jp/en/,English,P-044,静的HTML`;
 
 // ============================================================
 // State
@@ -1451,9 +1396,11 @@ function initImportDialog() {
 document.addEventListener('DOMContentLoaded', function () {
   setRandomLogo();
 
+  // 1行目は見出し。URL=A列、タイトル=B列、タグ=C・D列(ページID・CMS)
   Papa.parse(DEFAULT_CSV, {
+    skipEmptyLines: 'greedy',
     complete: results => {
-      jsonData = csvToJson(results.data);
+      jsonData = csvToJson(results.data.slice(1), 0, 1, [2, 3]);
       draw(jsonData);
     },
   });
