@@ -125,53 +125,125 @@ function setRandomLogo() {
 // ============================================================
 // CSV → JSON  (各ノードに url / label を付与)
 // rows: PapaParse の results.data (string[][] 形式)
-// 1列目 = URL、2列目 = 表示ラベル(任意)
+// urlCol = URL の列、labelCol = 表示ラベルの列(任意)。階層は URL のパスから作る
 // ============================================================
 // 末尾が拡張子(.html / .pdf など)ならファイル、それ以外はフォルダとみなす
 const FILE_EXT_RE = /\.[a-z0-9]{1,10}$/i;
 
-function csvToJson(rows) {
+// https:// を補完して URL として解釈。ドメインに「.」がないもの(見出しの「URL」や「-」など)は無効とする
+function normalizeUrl(raw) {
+  let s = raw == null ? '' : String(raw).trim();
+  if (!s) return null;
+  if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+  try {
+    const u = new URL(s);
+    return u.hostname.includes('.') ? u : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// tagCols = タグの列(任意・複数可)。値はボックス左上に小さく表示する
+function csvToJson(rows, urlCol = 0, labelCol = 1, tagCols = []) {
   const root = { name: 'TOP', children: [], url: null };
   let rootOrigin = '';
 
   rows.forEach(row => {
-    if (!row || !row[0]) return;
-    let rawUrl = String(row[0]).trim();
-    const rawLabel = row[1] != null ? String(row[1]).trim() : '';
-    if (!rawUrl) return;
-    if (!/^https?:\/\//.test(rawUrl)) rawUrl = 'https://' + rawUrl;
-    try {
-      const parsed = new URL(rawUrl);
-      if (!rootOrigin) {
-        rootOrigin = parsed.origin;
-        root.name = parsed.hostname;
-        root.url = rootOrigin + '/';
-      }
-      const parts = parsed.pathname.split('/').filter(Boolean);
-      let cur = root;
-      let accPath = '';
-      parts.forEach((seg, idx) => {
-        accPath += '/' + seg;
-        const isFile = idx === parts.length - 1 && FILE_EXT_RE.test(seg);
-        let child = cur.children.find(c => c.name === '/' + seg);
-        if (!child) {
-          child = {
-            name: '/' + seg,
-            children: [],
-            url: rootOrigin + accPath + (isFile ? '' : '/'),
-            isFile,
-          };
-          cur.children.push(child);
-        }
-        if (idx === parts.length - 1 && rawLabel) child.label = rawLabel;
-        cur = child;
-      });
-      if (parts.length === 0 && rawLabel) root.label = rawLabel;
-    } catch (e) {
-      console.error('Invalid URL skipped:', row[0]);
+    if (!row || !row[urlCol]) return;
+    const rawLabel = labelCol != null && row[labelCol] != null ? String(row[labelCol]).trim() : '';
+    const tags = tagCols.map(c => cellText(row, c)).filter(Boolean);
+    const parsed = normalizeUrl(row[urlCol]);
+    if (!parsed) {
+      console.error('Invalid URL skipped:', row[urlCol]);
+      return;
     }
+    if (!rootOrigin) {
+      rootOrigin = parsed.origin;
+      root.name = parsed.hostname;
+      root.url = rootOrigin + '/';
+    }
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    let cur = root;
+    let accPath = '';
+    parts.forEach((seg, idx) => {
+      accPath += '/' + seg;
+      const isFile = idx === parts.length - 1 && FILE_EXT_RE.test(seg);
+      let child = cur.children.find(c => c.name === '/' + seg);
+      if (!child) {
+        child = {
+          name: '/' + seg,
+          children: [],
+          url: rootOrigin + accPath + (isFile ? '' : '/'),
+          isFile,
+        };
+        cur.children.push(child);
+      }
+      if (idx === parts.length - 1 && rawLabel) child.label = rawLabel;
+      if (idx === parts.length - 1 && tags.length) child.tags = tags;
+      cur = child;
+    });
+    if (parts.length === 0 && rawLabel) root.label = rawLabel;
+    if (parts.length === 0 && tags.length) root.tags = tags;
   });
 
+  computeFileCounts(root);
+  return root;
+}
+
+// ============================================================
+// 階層列 → JSON
+// 「第1階層」「第2階層」…と階層ごとに列が分かれた表を読み込む。
+// 値が入っている最も左の階層列の位置 = その行の階層。
+// 親 = それより前に出てきた、より浅い階層の直近の行。
+// URL のパスではなく列の位置で構造を作るので、URL の表記ゆれ・外部ドメイン・
+// URL 未記入があっても表のとおりの階層を再現できる。
+// ============================================================
+function hierarchyToJson(rows, levelCols, urlCol, tagCols = []) {
+  const top = { name: '', children: [], url: null };
+  const stack = [{ node: top, level: -1 }];
+  const urlOf = new Map();
+  const hostCount = {};
+
+  rows.forEach(row => {
+    if (!row) return;
+    const level = levelCols.findIndex(c => row[c] != null && String(row[c]).trim());
+    if (level < 0) return;
+    const node = { name: '', label: String(row[levelCols[level]]).trim(), children: [], url: null, isFile: false };
+    const tags = tagCols.map(c => cellText(row, c)).filter(Boolean);
+    if (tags.length) node.tags = tags;
+    const u = urlCol != null ? normalizeUrl(row[urlCol]) : null;
+    if (u) {
+      node.url = u.href;
+      urlOf.set(node, u);
+      hostCount[u.host] = (hostCount[u.host] || 0) + 1;
+    }
+    while (stack[stack.length - 1].level >= level) stack.pop();
+    stack[stack.length - 1].node.children.push(node);
+    stack.push({ node, level });
+  });
+
+  // 最も多いドメインを主ドメインとし、ディレクトリ表示は末尾のパスのみ。外部ドメインはドメインから表示
+  const mainHost = Object.keys(hostCount).sort((a, b) => hostCount[b] - hostCount[a])[0] || '';
+  (function finalize(n) {
+    const u = urlOf.get(n);
+    if (u) {
+      const segs = u.pathname.split('/').filter(Boolean);
+      const last = segs.length ? '/' + segs[segs.length - 1] : '/';
+      n.name = u.host === mainHost ? last : u.host + u.pathname;
+      // 子ページを持つ .html はフォルダ扱い(ファイル非表示で配下ごと消えないように)
+      n.isFile = n.children.length === 0 && FILE_EXT_RE.test(last);
+    }
+    n.children.forEach(finalize);
+  })(top);
+
+  // 最上位が1行だけならそれをルートに、複数なら主ドメインを仮のルートにする
+  let root = top;
+  if (top.children.length === 1) {
+    root = top.children[0];
+  } else {
+    root.name = mainHost || 'TOP';
+    root.url = mainHost ? 'https://' + mainHost + '/' : null;
+  }
   computeFileCounts(root);
   return root;
 }
@@ -291,11 +363,14 @@ const PARAMS = {
   VSpacing: 50,
   Separation: 1.2,
   WrapText: true,
+  MaxTitleLines: 0,
   BaseColor: '#530100',
   Compact: false,
   ShowTitle: true,
   ShowDirectory: true,
   ShowBadge: true,
+  ShowTag: true,
+  TagColor: '#ffffff',
   Remove1: '',
   Remove2: '',
   Remove3: '',
@@ -343,6 +418,11 @@ fRemove.addInput(PARAMS, 'Remove2', { label: '削除文字列2' });
 fRemove.addInput(PARAMS, 'Remove3', { label: '削除文字列3' });
 fRemove.addButton({ title: '🔄 反映する' }).on('click', () => draw(jsonData));
 
+// タグ(取り込み設定で「タグ」にした列の値。ページIDやCMS実装の有無など)
+const fTag = pane.addFolder({ title: 'タグの設定', expanded: false });
+fTag.addInput(PARAMS, 'ShowTag', { label: 'タグを表示' });
+fTag.addInput(PARAMS, 'TagColor', { label: 'タグの色' });
+
 
 const fBC = pane.addFolder({ title: 'ボックス表示の設定', expanded: false });
 fBC.addInput(PARAMS, 'BoxWidth', { step: 1, min: 20, max: 600, label: 'ボックスの幅' });
@@ -351,6 +431,7 @@ fBC.addInput(PARAMS, 'HSpacing', { step: 1, min: 0, max: 100, label: 'ボック�
 fBC.addInput(PARAMS, 'Separation', { step: 0.1, min: 0.5, max: 3.0, label: '異なるグループ間の間隔' });
 fBC.addInput(PARAMS, 'VSpacing', { step: 1, min: 20, max: 200, label: '階層間の縦の間隔' });
 fBC.addInput(PARAMS, 'WrapText', { label: 'テキストを折り返す' });
+fBC.addInput(PARAMS, 'MaxTitleLines', { step: 1, min: 0, max: 10, label: 'タイトルの最大行数（0=制限なし）' });
 fBC.addInput(PARAMS, 'AlignB', {
   label: '縦並べの揃え',
   options: { '上揃え（左寄せ）': 'top', '真ん中揃え': 'center' },
@@ -421,13 +502,14 @@ const BOX_FONT_SIZE = 11;
 
 // 実際のピクセル幅を計測(全角/半角の混在を正しく扱う)
 let _measureCtx = null;
-function measureText(str, bold) {
+function measureText(str, bold, size = BOX_FONT_SIZE) {
   if (!_measureCtx) _measureCtx = document.createElement('canvas').getContext('2d');
-  _measureCtx.font = `${bold ? '700 ' : ''}${BOX_FONT_SIZE}px 'Hiragino Kaku Gothic Pro',Meiryo,sans-serif`;
+  _measureCtx.font = `${bold ? '700 ' : ''}${size}px 'Hiragino Kaku Gothic Pro',Meiryo,sans-serif`;
   return _measureCtx.measureText(str).width;
 }
 
-function wrapSegment(text, bw, bold) {
+// maxLines > 0 なら、その行数を超えた分を最終行の末尾…で省略する
+function wrapSegment(text, bw, bold, maxLines = 0) {
   if (!text) return [];
   const avail = Math.max(1, bw - BOX_PAD_X * 2);
 
@@ -451,6 +533,13 @@ function wrapSegment(text, bw, bold) {
     }
   }
   if (cur) lines.push(cur);
+  if (maxLines > 0 && lines.length > maxLines) {
+    const kept = lines.slice(0, maxLines);
+    let last = kept[maxLines - 1];
+    while (last.length > 0 && measureText(last + '…', bold) > avail) last = last.slice(0, -1);
+    kept[maxLines - 1] = last + '…';
+    return kept;
+  }
   return lines;
 }
 
@@ -459,6 +548,15 @@ const LINE_H = 13;              // 1行の高さ
 const SEG_GAP = 8;             // タイトル段とディレクトリ段の隙間
 const STD_CONTENT_H = 2 * LINE_H + SEG_GAP; // 標準(タイトル1行+ディレクトリ1行)の内容高さ
 const MIN_BOX_H = 28;          // ボックスの最小高さ
+// タグ(ボックス左上の角にかぶせる小さなラベル)の寸法
+const TAG_FONT_SIZE = 9;
+const TAG_H = 14;              // タグ1個の高さ
+const TAG_PAD_X = 4;           // タグ内の左右パディング
+const TAG_GAP = 3;             // タグ同士の間隔
+const hasTags = d => PARAMS.ShowTag && d.data.tags && d.data.tags.length > 0;
+// タグはボックスの上辺をまたいで上に半分はみ出す。タグを持つノードが1つでもあれば、
+// はみ出し分だけボックス同士の間隔を広げて、隣のボックスと重ならないようにする
+const tagOverhang = nodes => (nodes.some(hasTags) ? TAG_H / 2 : 0);
 
 // ノードの表示行(タイトル/ディレクトリ)を計算
 function computeSegments(d, bw) {
@@ -466,7 +564,7 @@ function computeSegments(d, bw) {
   const title = (PARAMS.ShowTitle && cleanLabel) ? cleanLabel : '';
   const dir = PARAMS.ShowDirectory ? (d.data.name || '') : '';
   return {
-    titleLines: title ? wrapSegment(title, bw, false) : [],
+    titleLines: title ? wrapSegment(title, bw, false, PARAMS.MaxTitleLines) : [],
     dirLines: dir ? wrapSegment(dir, bw, true) : [],
   };
 }
@@ -477,49 +575,56 @@ function contentHeight(segs) {
   return n * LINE_H + (hasGap ? SEG_GAP : 0);
 }
 
-// 全ノードに「その生成で必要な最大高さ」を絶対pxで一律に割り当てる。
+// 各ノードの高さ d.boxH を内容から割り当てる。
 // 標準(タイトル+ディレクトリ各1行)= PARAMS.BoxHeight を基準に、
-// 内容が少なければ全体が縮み、折り返しで増えれば全体が広がる。
-// 高さを一律にすることで、ボックス上辺が揃い接続線のずれを防ぐ。
-// 返り値 = 全ノード共通の高さ(レイアウトの間隔算出にも使用)。
-function assignBoxHeights(nodes, bw) {
+// 内容が少なければ縮み、折り返しで増えれば広がる。
+// uniform = true(真ん中揃え)のときは d3.tree が同じ大きさのボックスしか
+// 扱えないため、全ノードを最大高さに揃える。
+// 上揃えでは各ボックスが自分の高さを持ち、配置は applyStartAlign が積み上げて計算する。
+// 返り値 = 全ノード中の最大高さ(レイアウトの間隔算出にも使用)。
+function assignBoxHeights(nodes, bw, uniform) {
   let maxH = MIN_BOX_H;
   nodes.forEach(d => {
     const segs = computeSegments(d, bw);
     d._segs = segs;
     const h = Math.max(MIN_BOX_H, PARAMS.BoxHeight + (contentHeight(segs) - STD_CONTENT_H));
+    d.boxH = h;
     if (h > maxH) maxH = h;
   });
-  // 生成時に全ボックスを同一の絶対px高さへ統一(線ずれ防止)
-  nodes.forEach(d => { d.boxH = maxH; });
+  if (uniform) nodes.forEach(d => { d.boxH = maxH; });
   return maxH;
 }
 
 // ============================================================
 // 上揃え(先頭揃え)レイアウト
 // ============================================================
-// breadth軸(d.x)を再計算する。葉に順番にスロットを割り当て、
-// 親は「先頭の子」と同じ位置に置く(＝サブツリーの先頭に揃う)。
+// breadth軸(d.x)を再計算する。葉を先頭から順に、各ボックスの実際の大きさ
+// sizeOf(d) + 余白 gap ずつ積み上げて並べ、親は「先頭の子」と同じ位置に置く
+// (＝サブツリーの先頭に揃う)。
 //
 // d3.tree の中央揃え結果を後から動かすと、レイアウトが保証していた
 // 間隔が崩れてノードが重なるため、breadth軸ごと組み直している。
-// 同じ深さの2ノードは必ず異なる葉を先頭に持つので、間隔は最低でも
-// 1スロット(=ボックスサイズ+余白)空き、重なりが原理的に起きない。
-function applyStartAlign(root, slot) {
+// 各サブツリーは [先頭位置, cursor) の区間を占有し、親が子より大きい場合も
+// 親の末端まで cursor を進めるので、同じ深さのノードは重ならない。
+// unit = 標準の1スロット(ボックス+余白)。親が変わる境目の Separation に使う。
+function applyStartAlign(root, sizeOf, gap, unit) {
   let cursor = 0;
   let prevLeaf = null;
   (function walk(d) {
     if (!d.children || d.children.length === 0) {
       // 親が変わる境目では Separation ぶん広くとる(d3.tree と同じ考え方)
-      if (prevLeaf) cursor += (d.parent === prevLeaf.parent ? 1 : PARAMS.Separation);
-      d._pos = cursor * slot;
+      if (prevLeaf && d.parent !== prevLeaf.parent) cursor += (PARAMS.Separation - 1) * unit;
+      d._pos = cursor;
+      cursor += sizeOf(d) + gap;
       prevLeaf = d;
       return;
     }
     d.children.forEach(walk);
     d._pos = d.children[0]._pos;
+    cursor = Math.max(cursor, d._pos + sizeOf(d) + gap);
   })(root);
-  root.each(d => { d.x = d._pos; });
+  // _pos はボックスの先頭(上端/左端)。描画側は中心座標を使うので中心に変換する
+  root.each(d => { d.x = d._pos + sizeOf(d) / 2; });
 }
 
 function applyBoxText(textSel, bw) {
@@ -571,6 +676,44 @@ function calcNodeBounds(nodes) {
 // バッジの色(接続線 .link-bc と同じグレー)
 const BADGE_COLOR = '#555555';
 
+// タグ: ボックス左上の角から、上辺をまたぐ位置に小さなラベルを横に並べる。
+// ボックス幅に収まらない分は…で省略し、
+// 入りきらないタグは描かない(全文はツールチップに残る)。
+// 文字色はタグの色の明るさから白/黒を自動で選ぶ。
+function renderTags(sel, bw) {
+  const fill = PARAMS.TagColor;
+  const textColor = hexToHsl(fill)[2] >= 55 ? '#111111' : '#FFFFFF';
+  sel.each(function (d) {
+    const g = d3.select(this).append('g')
+      .attr('class', 'tag-bc')
+      .attr('transform', `translate(0,${-TAG_H / 2})`);
+    let x = 0;
+    for (const tag of d.data.tags) {
+      const avail = bw - x - TAG_PAD_X * 2;
+      if (avail < measureText('…', false, TAG_FONT_SIZE) + 2) break;
+      let label = tag;
+      if (measureText(label, false, TAG_FONT_SIZE) > avail) {
+        while (label.length > 0 && measureText(label + '…', false, TAG_FONT_SIZE) > avail) label = label.slice(0, -1);
+        label += '…';
+      }
+      const w = measureText(label, false, TAG_FONT_SIZE) + TAG_PAD_X * 2;
+      g.append('rect')
+        .attr('x', x).attr('width', w).attr('height', TAG_H)
+        .attr('fill', fill)
+        .attr('stroke', 'rgba(0,0,0,0.15)')
+        .attr('stroke-width', 0.5);
+      g.append('text')
+        .attr('x', x + TAG_PAD_X).attr('y', TAG_H / 2)
+        .attr('dy', '0.35em')
+        .attr('font-size', TAG_FONT_SIZE + 'px')
+        .attr('font-family', "'Hiragino Kaku Gothic Pro',Meiryo,sans-serif")
+        .attr('fill', textColor)
+        .text(label);
+      x += w + TAG_GAP;
+    }
+  });
+}
+
 // 各ノードは内容に応じた高さ d.boxH を持つ(assignBoxHeights で事前計算)。
 function renderBoxNodes(g, nodes, bw, getPos) {
   const ng = g.selectAll('g.node-bc').data(nodes).enter()
@@ -598,7 +741,11 @@ function renderBoxNodes(g, nodes, bw, getPos) {
     bw
   );
 
-  a.append('title').text(d => (stripRemovals(d.data.label) || d.data.name) + (d.data.url ? '\n' + d.data.url : ''));
+  a.append('title').text(d => (stripRemovals(d.data.label) || d.data.name)
+    + (d.data.url ? '\n' + d.data.url : '')
+    + (d.data.tags && d.data.tags.length ? '\n' + d.data.tags.join(' / ') : ''));
+
+  renderTags(a.filter(hasTags), bw);
 
   // バッジ: 下階層ページ数(全子孫数)。
   // 縦並べ(B)=下辺中央 / 横並べ(C)=右辺中央 に配置。
@@ -711,16 +858,26 @@ function drawPatternB(data) {
   root.each(d => { if (d.depth >= depth && d.children) d.children = null; });
 
   // 各ノードの高さを内容から算出。階層間隔は最大高さを基準に確保。
-  const maxH = assignBoxHeights(root.descendants(), bw);
+  const topAlign = PARAMS.AlignB === 'top';
+  const maxH = assignBoxHeights(root.descendants(), bw, !topAlign);
+  const rowGap = vsp + tagOverhang(root.descendants());
 
   d3.tree()
-    .nodeSize([bw + hsp, maxH + vsp])
+    .nodeSize([bw + hsp, maxH + rowGap])
     .separation((a, b) => a.parent === b.parent ? 1 : PARAMS.Separation)
     (root);
 
   // 上揃え: 親を先頭の子と同じ位置(左端)に合わせ、左から右下へ伸びるツリーにする。
   // 真ん中揃えは d3.tree の既定(親を子の中央に配置)のまま。
-  if (PARAMS.AlignB === 'top') applyStartAlign(root, bw + hsp);
+  if (topAlign) {
+    applyStartAlign(root, () => bw, hsp, bw + hsp);
+    // 各階層の行の高さ = その階層で最も高いボックス。行の上端を揃えて積み上げる
+    const rowH = [];
+    root.each(d => { rowH[d.depth] = Math.max(rowH[d.depth] || 0, d.boxH); });
+    const rowTop = [0];
+    for (let i = 1; i < rowH.length; i++) rowTop[i] = rowTop[i - 1] + rowH[i - 1] + rowGap;
+    root.each(d => { d.y = rowTop[d.depth] + d.boxH / 2; });
+  }
 
   const nodes = root.descendants();
   const links = root.links();
@@ -761,17 +918,20 @@ function drawPatternC(data) {
   root.each(d => { if (d.depth >= depth && d.children) d.children = null; });
 
   // 各ノードの高さを内容から算出。縦の間隔は最大高さを基準に確保。
-  const maxH = assignBoxHeights(root.descendants(), bw);
+  const topAlign = PARAMS.AlignC === 'top';
+  const maxH = assignBoxHeights(root.descendants(), bw, !topAlign);
+  const boxGap = hsp + tagOverhang(root.descendants());
 
   // breadth方向(x) = 縦間隔, depth方向(y) = 横間隔
   d3.tree()
-    .nodeSize([maxH + hsp, bw + vsp])
+    .nodeSize([maxH + boxGap, bw + vsp])
     .separation((a, b) => a.parent === b.parent ? 1 : PARAMS.Separation)
     (root);
 
   // 上揃え: 各ノードを子ブロックの先頭(最上段)に合わせる(全階層に適用)
   // 真ん中揃えは d3.tree の既定(親を子の中央に配置)のまま。
-  if (PARAMS.AlignC === 'top') applyStartAlign(root, maxH + hsp);
+  // 上揃えでは各ボックスの実際の高さで積み上げる(短いタイトルのボックスは低くなる)
+  if (topAlign) applyStartAlign(root, d => d.boxH, boxGap, PARAMS.BoxHeight + boxGap);
 
   const nodes = root.descendants();
   const links = root.links();
@@ -809,6 +969,322 @@ function draw(data) {
 }
 
 // ============================================================
+// 取り込み設定ダイアログ
+// 読み込んだ表をそのまま表示し、各列の役割(URL / タイトル / タグ)をユーザーが選ぶ。
+// タイトルが1列なら URL のパスから、2列以上なら列の位置から階層を作る。
+// 自動判定は初期値の提案にとどめ、形式ごとの特別対応はしない。
+// ============================================================
+const ROLE_OPTIONS = [
+  { value: 'none', label: '使わない' },
+  { value: 'url', label: 'URL' },
+  { value: 'label', label: 'タイトル' },
+  { value: 'tag', label: 'タグ' },
+];
+const PREVIEW_ROWS = 50;
+// https:// / www. で始まるか、example.com/… のようにドメインで始まる値をURLらしいとみなす
+const URLISH_RE = /^(https?:\/\/|www\.|[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}(\/|$))/i;
+
+// previewRow = プレビューに使う行(0始まり)。null なら開始行以降で最初に表示できる行を使う
+const importState = { buffer: null, fileName: '', encoding: 'utf-8', rows: [], roles: [], start: 1, previewRow: null };
+
+// UTF-8 として正しく読めなければ Shift_JIS(Excel の CSV 保存の既定)とみなす
+function detectEncoding(buf) {
+  try {
+    new TextDecoder('utf-8', { fatal: true }).decode(buf);
+    return 'utf-8';
+  } catch (e) {
+    return 'shift_jis';
+  }
+}
+
+function parseBuffer(buf, encoding) {
+  const text = new TextDecoder(encoding).decode(buf);
+  return Papa.parse(text, { skipEmptyLines: 'greedy' }).data;
+}
+
+const cellText = (row, c) => (row && row[c] != null ? String(row[c]).trim() : '');
+
+// 列の役割の初期値を提案する(ユーザーが画面で直す前提の簡易判定)
+function suggestRoles(rows) {
+  const nCols = rows.reduce((m, r) => Math.max(m, r.length), 0);
+  // 深い階層の列は表の後半にしか値がないこともあるため、全行で集計する
+  const stats = Array.from({ length: nCols }, (_, c) => {
+    const vals = rows.map(r => cellText(r, c)).filter(Boolean);
+    return {
+      fill: vals.length / (rows.length || 1),
+      urlRatio: vals.filter(v => URLISH_RE.test(v)).length / (vals.length || 1),
+      avgLen: vals.reduce((s, v) => s + v.length, 0) / (vals.length || 1),
+    };
+  });
+  const roles = Array(nCols).fill('none');
+
+  // URL: URLらしい値が半分以上ある列のうち最もURLらしい列
+  let urlCol = -1;
+  stats.forEach((s, c) => {
+    if (s.urlRatio >= 0.5 && (urlCol < 0 || s.urlRatio > stats[urlCol].urlRatio)) urlCol = c;
+  });
+  if (urlCol >= 0) roles[urlCol] = 'url';
+
+  // 階層: 空欄まじりの文字列の列が2列以上並んでいれば、それらすべてをタイトルにする
+  const isLevelLike = c => c !== urlCol && stats[c].fill > 0 && stats[c].fill < 0.9 && stats[c].urlRatio < 0.5;
+  let best = [], run = [];
+  for (let c = 0; c <= nCols; c++) {
+    if (c < nCols && isLevelLike(c)) { run.push(c); continue; }
+    if (run.length > best.length) best = run;
+    run = [];
+  }
+  if (best.length >= 2) {
+    best.forEach(c => { roles[c] = 'label'; });
+  } else {
+    // タイトル: ほぼ埋まっている文字列の列のうち平均文字数が最も長い列(ID列などを避ける)
+    let labelCol = -1;
+    stats.forEach((s, c) => {
+      if (c === urlCol || s.fill < 0.5 || s.urlRatio >= 0.5) return;
+      if (labelCol < 0 || s.avgLen > stats[labelCol].avgLen) labelCol = c;
+    });
+    if (labelCol >= 0) roles[labelCol] = 'label';
+  }
+  return roles;
+}
+
+// 1行目のURL列がURLでなく2行目がURLなら、1行目は見出しとみなす
+function suggestStart(rows, roles) {
+  const urlCol = roles.indexOf('url');
+  if (urlCol < 0 || rows.length < 2) return 1;
+  return !normalizeUrl(cellText(rows[0], urlCol)) && normalizeUrl(cellText(rows[1], urlCol)) ? 2 : 1;
+}
+
+function colName(i) {
+  let s = '';
+  for (i += 1; i > 0; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + ((i - 1) % 26)) + s;
+  return s;
+}
+
+const escapeHtml = s => String(s).replace(/[&<>"']/g, ch => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+));
+
+function renderImportTable() {
+  const { rows, roles, start } = importState;
+  const head = roles.map((role, c) => `
+    <th class="it-head it-role--${role}">
+      <div class="it-colname">${colName(c)}列</div>
+      <select class="it-select" data-col="${c}">
+        ${ROLE_OPTIONS.map(o => `<option value="${o.value}"${o.value === role ? ' selected' : ''}>${o.label}</option>`).join('')}
+      </select>
+    </th>`).join('');
+  const body = rows.slice(0, PREVIEW_ROWS).map((r, i) => `
+    <tr data-row="${i}" class="${i + 1 < start ? 'is-skipped' : ''}">
+      <td class="it-rownum">${i + 1}</td>
+      ${roles.map((role, c) => {
+        const v = escapeHtml(cellText(r, c));
+        return `<td class="it-cell it-role--${role}" title="${v}">${v}</td>`;
+      }).join('')}
+    </tr>`).join('');
+  const more = rows.length > PREVIEW_ROWS
+    ? `<tr><td class="it-more" colspan="${roles.length + 1}">ほか ${rows.length - PREVIEW_ROWS} 行</td></tr>`
+    : '';
+  document.getElementById('import-table').innerHTML =
+    `<thead><tr><th class="it-rownum"></th>${head}</tr></thead><tbody>${body}${more}</tbody>`;
+  renderImportSummary();
+  renderImportPreview();
+}
+
+// ============================================================
+// 1ボックスのプレビュー
+// 選んだ1行を、実際の描画と同じ renderBoxNodes で1つのボックスとして描く。
+// 色・幅・表示項目などはパネルの現在の設定がそのまま反映される。
+// ============================================================
+function previewNode(row) {
+  const roles = importState.roles;
+  const titleCols = titleColumns(roles);
+  const urlCol = roles.indexOf('url');
+  const u = urlCol >= 0 ? normalizeUrl(row[urlCol]) : null;
+  const segs = u ? u.pathname.split('/').filter(Boolean) : [];
+  let label = '';
+  let depth = segs.length;
+  if (titleCols.length >= 2) {
+    const level = titleCols.findIndex(c => cellText(row, c));
+    if (level >= 0) { label = cellText(row, titleCols[level]); depth = level; }
+  } else if (titleCols.length === 1) {
+    label = cellText(row, titleCols[0]);
+  }
+  return {
+    depth,
+    data: {
+      name: u ? (segs.length ? '/' + segs[segs.length - 1] : '/') : '',
+      label,
+      url: u ? u.href : null,
+      tags: columnsOf(roles, 'tag').map(c => cellText(row, c)).filter(Boolean),
+      fileCount: 0,
+    },
+  };
+}
+
+function renderImportPreview() {
+  const { rows, start } = importState;
+  const canShow = i => {
+    if (i == null || i < start - 1 || i >= rows.length) return false;
+    const d = previewNode(rows[i]).data;
+    return !!(d.label || d.name);
+  };
+  let idx = importState.previewRow;
+  if (!canShow(idx)) {
+    idx = -1;
+    for (let i = start - 1; i < Math.min(rows.length, PREVIEW_ROWS); i++) {
+      if (canShow(i)) { idx = i; break; }
+    }
+  }
+
+  document.querySelectorAll('#import-table tr.is-preview').forEach(tr => tr.classList.remove('is-preview'));
+  const tr = document.querySelector(`#import-table tr[data-row="${idx}"]`);
+  if (tr) tr.classList.add('is-preview');
+  document.getElementById('import-preview-label').textContent = idx >= 0 ? `（${idx + 1}行目）` : '';
+
+  const holder = d3.select('#import-preview-box');
+  holder.selectAll('*').remove();
+  if (idx < 0) {
+    holder.append('p').attr('class', 'import-preview-empty').text('プレビューできる行がありません');
+    return;
+  }
+  const node = previewNode(rows[idx]);
+  const bw = PARAMS.BoxWidth;
+  assignBoxHeights([node], bw, true);
+  const pad = 12;
+  const top = pad + (hasTags(node) ? TAG_H / 2 : 0);
+  const svg = holder.append('svg')
+    .attr('width', bw + pad * 2)
+    .attr('height', node.boxH + top + pad);
+  renderBoxNodes(svg.append('g'), [node], bw, () => ({ x: pad, y: top }));
+}
+
+// タイトルに選ばれた列(左から順)
+const columnsOf = (roles, role) => roles.map((r, c) => (r === role ? c : -1)).filter(c => c >= 0);
+const titleColumns = roles => columnsOf(roles, 'label');
+
+function renderImportSummary() {
+  const { rows, roles, start } = importState;
+  const titleCols = titleColumns(roles);
+  const hasUrl = roles.includes('url');
+  const count = Math.max(0, rows.length - (start - 1));
+  let msg, ok = true;
+  if (titleCols.length >= 2) {
+    msg = `タイトルが${titleCols.length}列（${titleCols.map(colName).join('・')}列）あるので、`
+      + '文字が入っている列の位置から階層を作ります（左の列ほど上の階層）。'
+      + (hasUrl ? '' : ' URL列を選ぶと、ボックスにリンクとディレクトリが付きます。');
+  } else if (hasUrl) {
+    msg = 'URLのパス（/company/about/ など）から階層を作ります。'
+      + (titleCols.length ? '' : ' タイトル列を選ぶと、ボックスに日本語タイトルが入ります。');
+  } else {
+    msg = 'URLの列を選ぶか、階層ごとに分かれたタイトル列を2列以上選んでください。';
+    ok = false;
+  }
+  const tagCols = columnsOf(roles, 'tag');
+  if (ok && tagCols.length) msg += ` ${tagCols.map(colName).join('・')}列の値をボックス左上にタグとして表示します。`;
+  document.getElementById('import-summary').textContent = ok ? `${msg}（対象 ${count} 行）` : msg;
+  document.getElementById('import-summary').classList.toggle('is-error', !ok);
+  document.getElementById('import-apply').disabled = !ok;
+}
+
+function openImportDialog(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    importState.buffer = reader.result;
+    importState.fileName = file.name;
+    importState.encoding = detectEncoding(reader.result);
+    importState.rows = parseBuffer(reader.result, importState.encoding);
+    importState.roles = suggestRoles(importState.rows);
+    importState.start = suggestStart(importState.rows, importState.roles);
+    importState.previewRow = null;
+    showImportDialog();
+  };
+  reader.onerror = () => console.error('File read error:', reader.error);
+  reader.readAsArrayBuffer(file);
+}
+
+function showImportDialog() {
+  document.getElementById('import-file-name').textContent = importState.fileName;
+  document.getElementById('import-encoding').value = importState.encoding;
+  const startInput = document.getElementById('import-start');
+  startInput.max = Math.max(1, importState.rows.length);
+  startInput.value = importState.start;
+  renderImportTable();
+  const dlg = document.getElementById('import-dialog');
+  if (!dlg.open) dlg.showModal();
+}
+
+function applyImport() {
+  const { rows, roles, start } = importState;
+  const data = rows.slice(start - 1);
+  const urlCol = roles.indexOf('url');
+  const titleCols = titleColumns(roles);
+  const tagCols = columnsOf(roles, 'tag');
+
+  jsonData = titleCols.length >= 2
+    ? hierarchyToJson(data, titleCols, urlCol >= 0 ? urlCol : null, tagCols)
+    : csvToJson(data, urlCol, titleCols.length ? titleCols[0] : null, tagCols);
+
+  // 表の階層がすべて見えるよう、表示する深さを必要に応じて広げる
+  const height = d3.hierarchy(jsonData).height;
+  if (height > PARAMS.Depth) {
+    PARAMS.Depth = height;
+    pane.refresh();
+  }
+
+  const desc = document.getElementById('csv-description');
+  if (desc) desc.remove();
+  document.getElementById('reconfig-btn').hidden = false;
+  document.getElementById('import-dialog').close();
+  draw(jsonData);
+}
+
+function initImportDialog() {
+  document.getElementById('import-table').addEventListener('change', e => {
+    if (!e.target.matches('.it-select')) return;
+    const col = Number(e.target.dataset.col);
+    const role = e.target.value;
+    // URLは1列だけ。別の列で選ばれたら元の列は「使わない」に戻す(タイトル・タグは複数列可)
+    if (role === 'url') {
+      importState.roles = importState.roles.map(r => (r === role ? 'none' : r));
+    }
+    importState.roles[col] = role;
+    renderImportTable();
+  });
+
+  // 行をクリックすると、その行でプレビューする
+  document.getElementById('import-table').addEventListener('click', e => {
+    const tr = e.target.closest('tr[data-row]');
+    if (!tr || e.target.closest('select')) return;
+    importState.previewRow = Number(tr.dataset.row);
+    renderImportPreview();
+  });
+
+  document.getElementById('import-encoding').addEventListener('change', e => {
+    importState.encoding = e.target.value;
+    const prevCols = importState.roles.length;
+    importState.rows = parseBuffer(importState.buffer, importState.encoding);
+    const nCols = importState.rows.reduce((m, r) => Math.max(m, r.length), 0);
+    if (nCols !== prevCols) importState.roles = suggestRoles(importState.rows);
+    renderImportTable();
+  });
+
+  document.getElementById('import-start').addEventListener('input', e => {
+    const n = Math.floor(Number(e.target.value));
+    if (!n || n < 1) return;
+    importState.start = Math.min(n, Math.max(1, importState.rows.length));
+    renderImportTable();
+  });
+
+  document.getElementById('import-cancel').addEventListener('click', () => {
+    document.getElementById('import-dialog').close();
+  });
+  document.getElementById('import-apply').addEventListener('click', applyImport);
+  document.getElementById('reconfig-btn').addEventListener('click', () => {
+    if (importState.buffer) showImportDialog();
+  });
+}
+
+// ============================================================
 // Event listeners
 // ============================================================
 document.addEventListener('DOMContentLoaded', function () {
@@ -821,20 +1297,14 @@ document.addEventListener('DOMContentLoaded', function () {
     },
   });
 
+  initImportDialog();
+
   document.getElementById('csvFile').addEventListener('change', function (e) {
     const file = e.target.files[0];
     if (!file) return;
-
-    const desc = document.getElementById('csv-description');
-    if (desc) desc.remove();
-
-    Papa.parse(file, {
-      complete: results => {
-        jsonData = csvToJson(results.data);
-        draw(jsonData);
-      },
-      error: err => console.error('CSV error:', err),
-    });
+    openImportDialog(file);
+    // 同じファイルを選び直しても change が発火するようにする
+    e.target.value = '';
   });
 
   document.querySelectorAll('.tab-btn').forEach(btn => {

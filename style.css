@@ -121,8 +121,13 @@ h1 {
   flex-shrink: 0;
 }
 
-.col-badge--opt {
-  background: #9ca3af;
+/* 取り込み設定ダイアログの色分けと揃える(URL=青 / タイトル=ブラウン / タグ=グリーン) */
+.col-badge--title {
+  background: #9a4a2a;
+}
+
+.col-badge--tag {
+  background: #15803d;
 }
 
 .desc-note {
@@ -130,7 +135,7 @@ h1 {
   font-size: 13px;
 }
 
-/* Spreadsheet mockup */
+/* 使い方の3ステップ */
 .desc-preview-col {
   flex-shrink: 0;
   width: 50%;
@@ -138,74 +143,63 @@ h1 {
   min-width: 0;
 }
 
-.spreadsheet-mock {
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  overflow: hidden;
-  font-size: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
-  border-collapse: collapse;
-  table-layout: fixed;
-  width: 100%;
+.desc-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.sm-col-url {
-  width: 50%;
+.desc-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 }
 
-.sm-col-label {
-  width: 50%;
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #000;
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
 }
 
-.sm-header {
-  background: #f3f4f6;
-  border-bottom: 2px solid #d1d5db;
+.step-body {
+  flex: 1;
+  min-width: 0;
 }
 
-.sm-row {
-  border-bottom: 1px solid #e5e7eb;
+.step-title {
+  font-weight: bold;
+  line-height: 24px;
 }
 
-.sm-row:last-child {
-  border-bottom: none;
+.step-roles {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #444;
 }
 
-.sm-row:nth-child(even) td {
-  background: #f9fafb;
-}
-
-.sm-cell {
-  padding: 4px 8px;
+.step-roles li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   line-height: 1.5;
 }
 
-.sm-col-head {
-  font-weight: bold;
-  color: #4b5563;
+.step-roles .col-badge {
+  min-width: 56px;
   text-align: center;
-  border-right: 1px solid #d1d5db;
-  padding: 6px 8px;
-}
-
-.sm-col-head:last-child {
-  border-right: none;
-}
-
-.sm-url {
-  color: #1d4ed8;
-  border-right: 1px solid #e5e7eb;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 0;
-}
-
-.sm-label {
-  color: #374151;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* ── File input ── */
@@ -357,4 +351,323 @@ input[type="file"] {
   max-height: 80vh;
   overflow-y: auto;
   z-index: 9999;
+}
+/* ── Upload group ── */
+.upload-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reconfig-btn {
+  padding: 10px 18px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 1000px;
+  background: #fff;
+  color: #000;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.reconfig-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.reconfig-btn[hidden] {
+  display: none;
+}
+
+/* ── Import dialog ── */
+.import-dialog {
+  margin: auto;
+  width: min(1200px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  border: none;
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+  color: var(--black);
+}
+
+.import-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.import-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 24px;
+  max-height: calc(100vh - 32px);
+}
+
+.import-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.import-head h2 {
+  font-size: 20px;
+}
+
+.import-file-name {
+  color: #666;
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.import-help {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #333;
+}
+
+.import-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: 13px;
+}
+
+.import-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: bold;
+}
+
+.import-options select,
+.import-options input {
+  font: inherit;
+  font-weight: normal;
+  padding: 4px 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.import-options input {
+  width: 72px;
+}
+
+.import-note {
+  color: #666;
+}
+
+.import-table-wrap {
+  flex: 1 1 auto;
+  min-height: 160px;
+  overflow: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+}
+
+.import-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.import-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f3f4f6;
+  border-bottom: 2px solid #d1d5db;
+}
+
+.it-head {
+  padding: 6px 8px;
+  text-align: left;
+  border-right: 1px solid #e5e7eb;
+}
+
+.it-colname {
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.it-select {
+  font: inherit;
+  font-weight: bold;
+  padding: 3px 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.it-rownum {
+  position: sticky;
+  left: 0;
+  background: #f9fafb;
+  color: #9ca3af;
+  text-align: right;
+  padding: 4px 8px;
+  border-right: 1px solid #e5e7eb;
+  font-variant-numeric: tabular-nums;
+}
+
+.import-table thead .it-rownum {
+  z-index: 2;
+  background: #f3f4f6;
+}
+
+.it-cell {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 4px 8px;
+  border-right: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.it-cell.it-role--none {
+  color: #9ca3af;
+}
+
+/* 役割ごとの色分け(URL=青 / タイトル=ブラウン / タグ=グリーン) */
+.it-head.it-role--url { background: #dbeafe; }
+.it-head.it-role--label { background: #f5e6dc; }
+.it-head.it-role--url .it-select { border-color: #2563eb; color: #1d4ed8; }
+.it-head.it-role--label .it-select { border-color: #9a4a2a; color: #7a2e12; }
+.it-cell.it-role--url { background: #eff6ff; color: #1d4ed8; }
+.it-cell.it-role--label { background: #fbf3ee; }
+.it-head.it-role--tag { background: #dcfce7; }
+.it-head.it-role--tag .it-select { border-color: #15803d; color: #166534; }
+.it-cell.it-role--tag { background: #f0fdf4; color: #166534; }
+
+.import-table tr.is-skipped .it-cell {
+  background: #fff;
+  color: #c0c0c0;
+  text-decoration: line-through;
+}
+
+.it-more {
+  padding: 8px;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* 行クリックでプレビュー対象を選ぶ */
+.import-table tbody tr[data-row] {
+  cursor: pointer;
+}
+
+.import-table tbody tr[data-row]:hover .it-cell {
+  filter: brightness(0.96);
+}
+
+.import-table tr.is-preview .it-cell,
+.import-table tr.is-preview .it-rownum {
+  background: #fef3c7;
+}
+
+.import-table tr.is-preview .it-rownum {
+  color: #92400e;
+  font-weight: bold;
+}
+
+.import-bottom {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.import-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 100%;
+}
+
+.import-preview-head {
+  font-size: 12px;
+  font-weight: bold;
+  color: #4b5563;
+}
+
+.import-preview-box {
+  background: #fff;
+  border: 1px dashed #d1d5db;
+  border-radius: 4px;
+  overflow-x: auto;
+  max-width: 640px;
+}
+
+.import-preview-box svg {
+  display: block;
+  /* プレビューのボックスはリンクとして動かさない */
+  pointer-events: none;
+}
+
+.import-preview-empty {
+  padding: 16px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.import-preview-note {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.import-summary {
+  flex: 1 1 240px;
+  align-self: flex-start;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.import-summary.is-error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.import-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-main,
+.btn-sub {
+  padding: 12px 24px;
+  border-radius: 1000px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.btn-main {
+  background: #000;
+  color: #fff;
+}
+
+.btn-main:hover {
+  background: #333;
+}
+
+.btn-main:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.btn-sub {
+  background: #fff;
+  color: #000;
+}
+
+.btn-sub:hover {
+  background: rgba(0, 0, 0, 0.06);
 }

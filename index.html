@@ -22,55 +22,49 @@
     <div class="description" id="csv-description">
       <div class="desc-body">
         <div class="desc-text-col">
-          <p>URLのリストを記載したcsvファイルをアップロードするだけで、サイトマップを自動生成。</br>SVGでダウンロードしてFigmaなどでそのまま編集できます。</p>
+          <p>URLやページ名が並んだCSVファイルをアップロードするだけで、サイトマップを自動生成。<br>SVGでダウンロードしてFigmaなどでそのまま編集できます。</p>
           <ul class="desc-rules">
-            <li class="desc-note">※https:// や www. がなくても自動補完します。</li>
-            <li class="desc-note"><a href="default.csv" download>サンプルCSVをダウンロード</a></li>
+            <li class="desc-note">※列の並びや見出しの有無は問いません。ディレクトリマップやコンテンツリストをそのまま使えます。</li>
+            <li class="desc-note">※Excelファイルは「CSV」形式で保存してからアップロードしてください。</li>
+            <li class="desc-note">※文字コード（UTF-8／Shift_JIS）や、https:// ・ www. の有無は自動で判別します。</li>
           </ul>
         </div>
         <div class="desc-preview-col">
-          <table class="spreadsheet-mock">
-            <colgroup>
-              <col class="sm-col-url">
-              <col class="sm-col-label">
-            </colgroup>
-            <thead>
-              <tr class="sm-header">
-                <th class="sm-cell sm-col-head"><span class="col-badge">A列</span>URL（必須）</th>
-                <th class="sm-cell sm-col-head sm-col-head--b"><span class="col-badge col-badge--opt">B列</span>表示ラベル（任意）
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="sm-row">
-                <td class="sm-cell sm-url">https://example.com/</td>
-                <td class="sm-cell sm-label">トップ</td>
-              </tr>
-              <tr class="sm-row">
-                <td class="sm-cell sm-url">https://example.com/about/</td>
-                <td class="sm-cell sm-label">会社概要</td>
-              </tr>
-              <tr class="sm-row">
-                <td class="sm-cell sm-url">example.com/contact/</td>
-                <td class="sm-cell sm-label">コンタクト</td>
-              </tr>
-              <tr class="sm-row">
-                <td class="sm-cell sm-url">example.com/news/</td>
-                <td class="sm-cell sm-label">ニュース</td>
-              </tr>
-              <tr class="sm-row">
-                <td class="sm-cell sm-url">example.com/news/article1/</td>
-                <td class="sm-cell sm-label">記事1</td>
-              </tr>
-            </tbody>
-          </table>
+          <ol class="desc-steps">
+            <li class="desc-step">
+              <span class="step-num">1</span>
+              <div class="step-body">
+                <p class="step-title">CSVファイルをアップロード</p>
+              </div>
+            </li>
+            <li class="desc-step">
+              <span class="step-num">2</span>
+              <div class="step-body">
+                <p class="step-title">表のプレビューで、各列の役割を選ぶ</p>
+                <ul class="step-roles">
+                  <li><span class="col-badge">URL</span>ページのURL</li>
+                  <li><span class="col-badge col-badge--title">タイトル</span>ボックスに表示する名前。「第1階層」「第2階層」…と列が分かれている場合は、それらの列すべてを選ぶと表のとおりの階層になります</li>
+                  <li><span class="col-badge col-badge--tag">タグ</span>ページIDやCMSなど、ボックスの角に添える情報（任意）</li>
+                </ul>
+              </div>
+            </li>
+            <li class="desc-step">
+              <span class="step-num">3</span>
+              <div class="step-body">
+                <p class="step-title">見た目を調整して、SVGでダウンロード</p>
+              </div>
+            </li>
+          </ol>
         </div>
       </div>
     </div>
 
     <div class="chart-controls">
-      <label class="file-upload-btn" for="csvFile">CSVファイルをアップロード</label>
-      <input type="file" id="csvFile" accept=".csv" />
+      <div class="upload-group">
+        <label class="file-upload-btn" for="csvFile">CSVファイルをアップロード</label>
+        <input type="file" id="csvFile" accept=".csv" />
+        <button type="button" class="reconfig-btn" id="reconfig-btn" hidden>列の設定を変更</button>
+      </div>
       <div class="pattern-tabs">
         <button class="tab-btn" data-pattern="B" title="縦に並べる">
           <svg class="tab-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"
@@ -137,6 +131,44 @@
 
   </div>
 
+  <dialog id="import-dialog" class="import-dialog" aria-labelledby="import-title">
+    <div class="import-inner">
+      <div class="import-head">
+        <h2 id="import-title">取り込み設定</h2>
+        <span class="import-file-name" id="import-file-name"></span>
+      </div>
+      <p class="import-help">各列の上のメニューで、URLの列を「URL」、ボックスに表示する文字の列を「タイトル」にしてください。<br>
+        「第1階層」「第2階層」…と階層ごとに列が分かれている表は、それらの列すべてを「タイトル」にすると、表のとおりの階層で描画します。<br>
+        ページIDやCMS実装の有無など、ボックスの左上に小さく添えたい列は「タグ」にしてください（任意）。</p>
+      <div class="import-options">
+        <label>文字コード
+          <select id="import-encoding">
+            <option value="utf-8">UTF-8</option>
+            <option value="shift_jis">Shift_JIS</option>
+          </select>
+        </label>
+        <label>データ開始行
+          <input type="number" id="import-start" min="1" value="1">
+        </label>
+        <span class="import-note">文字化けしている場合は文字コードを、見出し行がある場合は開始行を変えてください。</span>
+      </div>
+      <div class="import-table-wrap">
+        <table class="import-table" id="import-table"></table>
+      </div>
+      <div class="import-bottom">
+        <div class="import-preview">
+          <div class="import-preview-head">ボックスのプレビュー<span id="import-preview-label"></span></div>
+          <div class="import-preview-box" id="import-preview-box"></div>
+          <p class="import-preview-note">表の行をクリックすると、その行で確認できます</p>
+        </div>
+        <p class="import-summary" id="import-summary"></p>
+      </div>
+      <div class="import-actions">
+        <button type="button" class="btn-sub" id="import-cancel">キャンセル</button>
+        <button type="button" class="btn-main" id="import-apply">サイトマップを生成</button>
+      </div>
+    </div>
+  </dialog>
 
   <script src="lib/papaparse.min.js"
     integrity="sha512-dfX5uYVXzyU8+KHqj8bjo7UkOdg18PaOtpa48djpNbZHwExddghZ+ZmzWT06R5v6NSk3ZUfsH6FNEDepLx9hPQ=="
