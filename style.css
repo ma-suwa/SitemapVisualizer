@@ -244,6 +244,60 @@ input[type="file"] {
   border-radius: 4px;
 }
 
+/* ── Zoom controls (画面上の拡大縮小) ── */
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.zoom-btn {
+  min-width: 40px;
+  padding: 8px 10px;
+  border: none;
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+  background: transparent;
+  color: #000;
+  font-size: 16px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.zoom-btn:last-child {
+  border-right: none;
+}
+
+.zoom-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.zoom-btn:disabled {
+  color: #b0b0b0;
+  cursor: default;
+}
+
+.zoom-level {
+  min-width: 64px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.zoom-fit {
+  font-size: 14px;
+  padding: 8px 14px;
+}
+
 /* ── Pattern tabs ── */
 .pattern-tabs {
   display: flex;

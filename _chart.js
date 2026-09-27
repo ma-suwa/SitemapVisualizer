@@ -469,6 +469,10 @@ function getActiveSvg() {
 
 function serializeSvg(svgEl) {
   const clone = svgEl.cloneNode(true);
+  // 画面上の拡大縮小(CSS の表示サイズ)は書き出しに含めない。width/height 属性の実寸で出力する
+  clone.style.removeProperty('width');
+  clone.style.removeProperty('height');
+  if (!clone.getAttribute('style')) clone.removeAttribute('style');
   const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   bg.setAttribute('width', '100%');
   bg.setAttribute('height', '100%');
@@ -884,10 +888,7 @@ function drawPatternB(data) {
   const { xMin, xMax, yMax } = calcNodeBounds(nodes);
 
   const pad = { t: maxH * 2, r: bw, b: maxH * 2, l: bw };
-  const svg = d3.select('#svg-container').append('svg')
-    .attr('width', xMax - xMin + bw + pad.l + pad.r)
-    .attr('height', yMax + maxH + pad.t + pad.b)
-    .attr('xmlns', 'http://www.w3.org/2000/svg');
+  const svg = createChartSvg(xMax - xMin + bw + pad.l + pad.r, yMax + maxH + pad.t + pad.b);
   const g = svg.append('g').attr('transform', `translate(${-xMin + pad.l},${pad.t})`);
 
   g.selectAll('path.link-bc').data(links).enter().insert('path', ':first-child')
@@ -904,7 +905,7 @@ function drawPatternB(data) {
   // ルートノード(x=0)が画面中央に来るようスクロール位置を設定
   const container = document.getElementById('svg-container');
   const rootCenterX = -xMin + pad.l + bw / 2;
-  container.scrollLeft = rootCenterX - container.clientWidth / 2;
+  container.scrollLeft = rootCenterX * zoomLevel - container.clientWidth / 2;
 }
 
 // ============================================================
@@ -939,10 +940,7 @@ function drawPatternC(data) {
 
   // 横型レイアウト: d.y → 水平, d.x → 垂直
   const pad = { t: maxH, r: bw * 2, b: maxH, l: bw };
-  const svg = d3.select('#svg-container').append('svg')
-    .attr('width', yMax + bw + pad.l + pad.r)
-    .attr('height', xMax - xMin + maxH + pad.t + pad.b)
-    .attr('xmlns', 'http://www.w3.org/2000/svg');
+  const svg = createChartSvg(yMax + bw + pad.l + pad.r, xMax - xMin + maxH + pad.t + pad.b);
   const g = svg.append('g').attr('transform', `translate(${pad.l},${-xMin + pad.t})`);
 
   g.selectAll('path.link-bc').data(links).enter().insert('path', ':first-child')
@@ -966,6 +964,107 @@ function draw(data) {
   if (PARAMS.Compact) drawPatternA(data);
   else if (currentPattern === 'B') drawPatternB(data);
   else drawPatternC(data);
+  updateZoomUI();
+}
+
+// ============================================================
+// 表示の拡大縮小(画面上のみ)
+// SVG の width/height 属性は実寸のまま残し、viewBox を付けたうえで
+// CSS の width/height だけを倍率に合わせて変える。スクロール範囲も倍率どおりになり、
+// 書き出し(serializeSvg)では CSS の表示サイズを取り除くので SVG の内容には影響しない。
+// コンパクト表示は画面幅に合わせて自動で縮む作りのため対象外。
+// ============================================================
+const ZOOM_MIN = 0.1;
+const ZOOM_MAX = 2;
+// 「−」「＋」ボタンで順に切り替える倍率
+const ZOOM_LEVELS = [0.1, 0.25, 0.33, 0.5, 0.67, 0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+let zoomLevel = 1;
+
+// ボックス表示(縦並べ/横並べ)の SVG を作る。実寸の width/height と同じ範囲の viewBox を付ける
+function createChartSvg(w, h) {
+  const svg = d3.select('#svg-container').append('svg')
+    .attr('width', w)
+    .attr('height', h)
+    .attr('viewBox', `0 0 ${w} ${h}`)
+    .attr('xmlns', 'http://www.w3.org/2000/svg');
+  applyZoomSize(svg.node());
+  return svg;
+}
+
+const isZoomable = () => !PARAMS.Compact;
+
+function applyZoomSize(svgEl) {
+  if (!svgEl || !isZoomable()) return;
+  svgEl.style.width = (Number(svgEl.getAttribute('width')) * zoomLevel) + 'px';
+  svgEl.style.height = (Number(svgEl.getAttribute('height')) * zoomLevel) + 'px';
+}
+
+// anchor = 倍率を変えても画面上の位置を動かさない点(clientX/Y)。省略時は表示枠の中央
+function setZoom(z, anchor) {
+  const svgEl = getActiveSvg();
+  if (!svgEl || !isZoomable()) return;
+  const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
+  const container = document.getElementById('svg-container');
+  const rect = container.getBoundingClientRect();
+  const ax = anchor ? anchor.clientX - rect.left : container.clientWidth / 2;
+  const ay = anchor ? anchor.clientY - rect.top : container.clientHeight / 2;
+  // 基準点が指している SVG 上の座標(実寸)
+  const px = (container.scrollLeft + ax) / zoomLevel;
+  const py = (container.scrollTop + ay) / zoomLevel;
+  zoomLevel = next;
+  applyZoomSize(svgEl);
+  container.scrollLeft = px * zoomLevel - ax;
+  container.scrollTop = py * zoomLevel - ay;
+  updateZoomUI();
+}
+
+function stepZoom(dir) {
+  const eps = 0.001;
+  const next = dir > 0
+    ? ZOOM_LEVELS.find(l => l > zoomLevel + eps)
+    : [...ZOOM_LEVELS].reverse().find(l => l < zoomLevel - eps);
+  if (next != null) setZoom(next);
+}
+
+// サイトマップ全体が表示枠に収まる倍率にする(100%より大きくはしない)
+function fitZoom() {
+  const svgEl = getActiveSvg();
+  if (!svgEl || !isZoomable()) return;
+  const container = document.getElementById('svg-container');
+  const cs = getComputedStyle(container);
+  const availW = container.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  // 表示枠の高さは内容に合わせて伸び縮みするので、上限(max-height)を基準にする
+  const availH = parseFloat(cs.maxHeight) - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const w = Number(svgEl.getAttribute('width'));
+  const h = Number(svgEl.getAttribute('height'));
+  zoomLevel = Math.min(1, Math.max(ZOOM_MIN, Math.min(availW / w, availH / h)));
+  applyZoomSize(svgEl);
+  container.scrollLeft = 0;
+  container.scrollTop = 0;
+  updateZoomUI();
+}
+
+function updateZoomUI() {
+  const enabled = isZoomable() && !!getActiveSvg();
+  document.getElementById('zoom-level').textContent = Math.round(zoomLevel * 100) + '%';
+  document.querySelectorAll('.zoom-controls button').forEach(b => { b.disabled = !enabled; });
+  document.getElementById('zoom-out').disabled = !enabled || zoomLevel <= ZOOM_MIN + 0.001;
+  document.getElementById('zoom-in').disabled = !enabled || zoomLevel >= ZOOM_MAX - 0.001;
+}
+
+function initZoomControls() {
+  document.getElementById('zoom-out').addEventListener('click', () => stepZoom(-1));
+  document.getElementById('zoom-in').addEventListener('click', () => stepZoom(1));
+  document.getElementById('zoom-level').addEventListener('click', () => setZoom(1));
+  document.getElementById('zoom-fit').addEventListener('click', fitZoom);
+
+  // Ctrl(Mac は ⌘)+ホイール、トラックパッドのピンチでマウス位置を中心に拡大縮小。
+  // 修飾キーなしのホイールは通常どおりスクロール
+  document.getElementById('svg-container').addEventListener('wheel', e => {
+    if (!(e.ctrlKey || e.metaKey) || !isZoomable()) return;
+    e.preventDefault();
+    setZoom(zoomLevel * Math.exp(-e.deltaY * 0.002), e);
+  }, { passive: false });
 }
 
 // ============================================================
@@ -1234,6 +1333,8 @@ function applyImport() {
   const desc = document.getElementById('csv-description');
   if (desc) desc.remove();
   document.getElementById('reconfig-btn').hidden = false;
+  // 新しいデータは実寸(100%)で表示する
+  zoomLevel = 1;
   document.getElementById('import-dialog').close();
   draw(jsonData);
 }
@@ -1298,6 +1399,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   initImportDialog();
+  initZoomControls();
 
   document.getElementById('csvFile').addEventListener('change', function (e) {
     const file = e.target.files[0];
